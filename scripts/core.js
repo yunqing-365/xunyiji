@@ -82,45 +82,8 @@ function updateStats() {
  */
 
 // ============================================================
-function updateInventory(filterType = 'all') {
-    // 🌟 修复：如果玩家是新号（背包为空），强制发放 STARTING_INVENTORY
-    if (Object.keys(gameState.inventory).length === 0 && typeof STARTING_INVENTORY !== 'undefined') {
-        Object.assign(gameState.inventory, STARTING_INVENTORY);
-    }
 
-    const invList = document.getElementById('inventory-list');
-    if (!invList) return;
 
-    invList.innerHTML = '';
-    let isEmpty = true;
-
-    for (const [itemName, count] of Object.entries(gameState.inventory)) {
-        if (count > 0) {
-            isEmpty = false;
-            let icon = '📦', rarity = 1;
-            if (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) {
-                icon = itemDatabase[itemName].icon;
-                rarity = itemDatabase[itemName].rarity;
-            }
-            
-            // 稀有度颜色边框
-            const rarityColors = { 1: '#eee', 2: '#a5d6a7', 3: '#90caf9', 4: '#ce93d8', 5: '#ffd54f' };
-            const borderColor = rarityColors[rarity] || '#eee';
-
-            invList.innerHTML += `
-                <div class="item-slot" style="border-color: ${borderColor}; cursor:pointer;" onclick="openItemDetail('${itemName}')">
-                    <div class="item-icon" style="font-size:36px; margin-bottom:8px;">${icon}</div>
-                    <div class="item-name" style="font-size:12px; font-weight:bold;">${itemName}</div>
-                    <div class="item-count" style="position:absolute; right:5px; bottom:5px; font-size:11px; background:#f0f0f0; padding:2px 6px; border-radius:6px;">x${count}</div>
-                </div>
-            `;
-        }
-    }
-
-    if (isEmpty) {
-        invList.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#aaa;">空空如也，去探索九州吧！</div>`;
-    }
-}
 //🛠️ 第三步：加强任务引擎的安全判定 (防报错地图卡死)
 
 
@@ -275,22 +238,54 @@ function _processNotifQueue() {
  * 打开弹窗（添加 .show 类）
  * @param {string} modalId - 弹窗元素 id
  */
-function openModal(modalId) {
-    // 互斥逻辑：先关闭界面上所有已经显示的弹窗
+// ============================================================
+// 🌟 基础优化 3：高级弹窗控制器 (带遮罩点击和全局 ESC 监听)
+// ============================================================
+
+// 初始化时自动在 DOM 插入一个全局遮罩层
+document.addEventListener('DOMContentLoaded', () => {
+    if (!document.getElementById('global-modal-overlay')) {
+        document.body.insertAdjacentHTML('beforeend', '<div id="global-modal-overlay" class="modal-overlay" onclick="closeAllModals()"></div>');
+    }
+    
+    // 全局 ESC 键监听
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAllModals();
+        }
+    });
+});
+
+window.openModal = function(modalId) {
+    // 互斥：先关闭其他显示的弹窗
     document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
     
     const el = document.getElementById(modalId);
-    if (el) el.classList.add('show');
-}
+    const overlay = document.getElementById('global-modal-overlay');
+    
+    if (el) {
+        el.classList.add('show');
+        if (overlay) overlay.classList.add('show');
+    }
+};
 
-/**
- * 关闭弹窗（移除 .show 类）
- * @param {string} modalId - 弹窗元素 id
- */
-function closeModal(modalId) {
+window.closeModal = function(modalId) {
     const el = document.getElementById(modalId);
+    const overlay = document.getElementById('global-modal-overlay');
+    
     if (el) el.classList.remove('show');
-}
+    
+    // 若界面上没有其他处于 show 状态的弹窗了，就把遮罩层也关掉
+    if (document.querySelectorAll('.modal.show').length === 0 && overlay) {
+        overlay.classList.remove('show');
+    }
+};
+
+window.closeAllModals = function() {
+    document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+    const overlay = document.getElementById('global-modal-overlay');
+    if (overlay) overlay.classList.remove('show');
+};
 
 /**
  * 打开匠人故事弹窗
@@ -352,35 +347,53 @@ function closeAchievement() {
  * @param {string}      viewId  - 目标视图的元素 id
  * @param {HTMLElement} [dockEl] - 被激活的 Dock 按钮（可选）
  */
-function switchMainView(viewId, dockEl) {
+// ============================================================
+// 🌟 进阶优化 1：统一的主视图切换与生命周期路由
+// ============================================================
+window.switchMainView = function(viewId, dockEl) {
+    // 1. 隐藏所有视图
     document.querySelectorAll('.view-container').forEach(v => {
         v.classList.remove('active-view');
-        v.style.display = '';
+        v.style.display = ''; // 清除可能残留的内联样式
     });
-    
-    const targetView = document.getElementById(viewId);
-    if(targetView) targetView.classList.add('active-view');
 
-    // 修复：只要不是在探索视图和场景枢纽里，就强行显示底部 Dock
+    // 2. 激活目标视图
+    const targetView = document.getElementById(viewId);
+    if (targetView) targetView.classList.add('active-view');
+
+    // 3. 处理底部 Dock 的显示与高亮
     const dock = document.getElementById('player-dock');
     if (dock) {
+        // 只要不是在探索视图和场景枢纽里，就强行显示底部 Dock
         if (viewId !== 'view-exploration' && viewId !== 'view-scene') {
             dock.classList.remove('hidden');
         }
     }
-
     if (dockEl) {
         document.querySelectorAll('.dock-item').forEach(item => item.classList.remove('active'));
         dockEl.classList.add('active');
     }
 
-    // 地图切换任务埋点
-    if (viewId === 'view-map') dispatchQuestEvent('view_map');
-    if (viewId === 'view-inventory') dispatchQuestEvent('view_inventory');
+    // 4. 视图生命周期钩子：切入对应页面时自动执行对应的数据渲染
+    if (viewId === 'view-map') {
+        if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('view_map');
+    } else if (viewId === 'view-inventory') {
+        if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('view_inventory');
+        if (typeof updateInventory === 'function') updateInventory('all'); // 强制刷新背包
+    } else if (viewId === 'view-profile') {
+        if (typeof renderAchievements === 'function') renderAchievements();
+        if (typeof meditatePersona === 'function') meditatePersona();
+    } else if (viewId === 'view-workshop') {
+        if (typeof renderWorkshop === 'function') renderWorkshop();
+    } else if (viewId === 'view-deduction') {
+        if (typeof renderDeductionBoard === 'function') renderDeductionBoard();
+    } else if (viewId === 'view-yuanshen') {
+        if (typeof renderYuanshen === 'function') renderYuanshen();
+    }
 
-    if(typeof playSound === 'function') playSound('view_switch');
-}
-
+    // 5. 播放切页音效
+    if (typeof playSound === 'function') playSound('view_switch');
+};
 
 // ============================================================
 // 八、设置系统（存 gameState，渲染交给 UI 层）
@@ -628,29 +641,6 @@ window.haggleInShop = function() {
 // 十、背包更新 (修复：让初始物资正确渲染到页面上)
 // ============================================================
 
-function updateInventory(filterType = 'all') {
-    const invList = document.getElementById('inventory-list');
-    if (!invList) return;
-
-    invList.innerHTML = '';
-    // 遍历 gameState.inventory 中的初始物品
-    for (const [itemName, count] of Object.entries(gameState.inventory)) {
-        // 从 itemDatabase 获取图标和稀有度
-        let icon = '📦';
-        let rarity = 1;
-        if (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) {
-            icon = itemDatabase[itemName].icon;
-            rarity = itemDatabase[itemName].rarity;
-        }
-        invList.innerHTML += `
-            <div class="item-slot rarity-${rarity}">
-                <div class="item-slot-icon">${icon}</div>
-                <div class="item-slot-name">${itemName}</div>
-                <div class="item-slot-count">x${count}</div>
-            </div>
-        `;
-    }
-}
 
 
 // ============================================================
@@ -723,34 +713,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 // 丰富交互框架路由 (响应各区域动作卡片)
 // ============================================================
-window.handleAction = function(actionType, target) {
-    if(typeof playSound === 'function') playSound('click');
-    
-    switch (actionType) {
-        case 'minigame':
-            if (target === 'toupot' && typeof openMinigame === 'function') openMinigame();
-            else if (target === 'riddle' && typeof openRiddleGame === 'function') openRiddleGame();
-            else _showGenericModal('🎮 技艺沉浸体验', `即将进入【${target}】全息小游戏环节，请穿戴好体感设备...`, '🎮');
-            break;
-        case 'listen':
-            _showGenericModal('🎵 听音赏乐', `正在连接数字留声机，为您播放九州百年流传的经典名段。请闭上眼睛感受...`, '🎧');
-            break;
-        case 'read':
-            _showGenericModal('📖 秘典查阅', `正在翻阅非遗古籍善本... 字里行间流露出千年前的匠人精神。`, '📜');
-            break;
-        case 'trade':
-            if(typeof openShop === 'function') openShop();
-            break;
-        case 'explore':
-            _showGenericModal('🗺️ 秘境深潜', `您深入了【${target}】的隐藏区域。系统检测到前方有高浓度能量波动，似乎有奇遇在等待...`, '✨');
-            break;
-        case 'calendar':
-            if(typeof openCheckin === 'function') openCheckin();
-            break;
-        default:
-            showNotification(`【${actionType}】模块正在修缮中，敬请期待...`, '🚧');
-    }
-};
 
 // 极其美观的通用占位弹窗
 
@@ -1211,20 +1173,63 @@ function leaveMessage() {
 }
 
 // ============================================================
-// 升级版：接管全局 handleAction，接入新功能
 // ============================================================
-const originalHandleAction = window.handleAction;
+// 🌟 基础优化 2：统一动作路由分发器 (消除多层嵌套覆盖)
+// ============================================================
 window.handleAction = function(actionType, target) {
-    if (actionType === 'craft') {
-        openCrafting();
-    } else if (actionType === 'message') {
-        openMessageBoard(target);
-    } else {
-        // 调用原有的逻辑
-        originalHandleAction(actionType, target);
+    if (typeof playSound === 'function') playSound('click');
+    
+    switch (actionType) {
+        case 'minigame':
+            if (target === 'toupot' && typeof openMinigame === 'function') openMinigame();
+            else if (target === 'riddle' && typeof openRiddleGame === 'function') openRiddleGame();
+            else _showGenericModal('🎮 技艺沉浸体验', `即将进入【${target}】全息小游戏环节，请穿戴好体感设备...`, '🎮');
+            break;
+        case 'listen':
+            _showGenericModal('🎵 听音赏乐', `正在连接数字留声机，为您播放九州百年流传的经典名段。请闭上眼睛感受...`, '🎧');
+            break;
+        case 'read':
+            _showGenericModal('📖 秘典查阅', `正在翻阅非遗古籍善本... 字里行间流露出千年前的匠人精神。`, '📜');
+            break;
+        case 'trade':
+            if (typeof openShop === 'function') openShop();
+            break;
+        case 'explore':
+            _showGenericModal('🗺️ 秘境深潜', `您深入了【${target}】的隐藏区域。系统检测到前方有高浓度能量波动，似乎有奇遇在等待...`, '✨');
+            break;
+        case 'calendar':
+            if (typeof openCheckin === 'function') openCheckin();
+            break;
+        // 以下为新增的高级模块路由
+        case 'craft':
+            if (typeof openCrafting === 'function') openCrafting();
+            break;
+        case 'message':
+            if (typeof openMessageBoard === 'function') openMessageBoard(target);
+            break;
+        case 'appraise':
+            if (typeof openAppraise === 'function') openAppraise();
+            break;
+        default:
+            showNotification(`【${actionType}】模块正在修缮中，敬请期待...`, '🚧');
     }
 };
 
+// 通用占位弹窗渲染函数
+function _showGenericModal(title, text) {
+    const titleEl = document.getElementById('story-title');
+    const contentEl = document.getElementById('story-content');
+    if (titleEl && contentEl) {
+        titleEl.innerText = title;
+        contentEl.innerHTML = `<div style="text-align:center; padding: 40px 20px;">
+                                   <div style="font-size: 50px; margin-bottom:20px; animation: float 3s infinite;">✨</div>
+                                   <div style="font-size: 16px; color: var(--ink);">${text}</div>
+                               </div>`;
+        openModal('story-modal');
+    } else {
+        showNotification(text, '✨');
+    }
+}
 // ============================================================
 // 十五、慧眼鉴宝 (黑市盲盒)
 // ============================================================
@@ -1278,19 +1283,6 @@ function executeAppraise() {
     }, 1800);
 }
 
-// 覆盖现有的 handleAction，加入鉴宝入口
-const originalHandleAction3 = window.handleAction;
-window.handleAction = function(actionType, target) {
-    if (actionType === 'appraise') {
-        openAppraise();
-    } else if (actionType === 'craft' || actionType === 'message') {
-        // 兼容上一轮加的功能
-        if(actionType === 'craft') openCrafting();
-        if(actionType === 'message') openMessageBoard(target);
-    } else {
-        originalHandleAction3(actionType, target);
-    }
-};
 
 // ============================================================
 // 修复：自动注入慧眼鉴宝 (黑市盲盒) 系统
@@ -1838,17 +1830,6 @@ window.executeCrafting = function() {
     }
 };
 
-// 6. 挂钩：每次点击底部 Dock 进入【化身纪】时，强制刷新数据
-const originalSwitchMainView4 = window.switchMainView;
-window.switchMainView = function(viewId, dockEl) {
-    if (typeof originalSwitchMainView4 === 'function') {
-        originalSwitchMainView4(viewId, dockEl);
-    }
-    if (viewId === 'view-profile') {
-        renderAchievements();
-        if (typeof meditatePersona === 'function') meditatePersona();
-    }
-};
 
 // ============================================================
 // 十八、天地法则底层引擎 (全局时间、日夜交替、世界BUFF)
@@ -2182,6 +2163,73 @@ window.unlockFragment = function() {
 // 二十一、灵犀袋 3.0 (兼容原生 itemDatabase 与 useFunc 回调)
 // ============================================================
 
+// ============================================================
+// 🌟 进阶优化 2：大一统灵犀袋 (背包) 渲染引擎
+// ============================================================
+window.updateInventory = function(filter = 'all') {
+    const grid = document.getElementById('inventory-list');
+    if (!grid) return;
+
+    // 1. 新手礼包安全兜底：如果背包完全为空或缺少关键道具，自动发放
+    if (Object.keys(gameState.inventory).length === 0 || !gameState.inventory['茶经残卷']) {
+        if (typeof STARTING_INVENTORY !== 'undefined') {
+            for (let item in STARTING_INVENTORY) {
+                if (!gameState.inventory[item]) {
+                    gameState.inventory[item] = STARTING_INVENTORY[item];
+                }
+            }
+        }
+    }
+
+    // 2. 构建渲染 HTML
+    let html = '';
+    let isEmpty = true;
+
+    for (let itemName in gameState.inventory) {
+        const count = gameState.inventory[itemName];
+        if (count > 0) {
+            // 安全读取图鉴数据库 (防报错)
+            const itemData = (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) 
+                ? itemDatabase[itemName] 
+                : { type: 'unknown', icon: '📦', desc: '未知物品。', rarity: 1 };
+            
+            // 过滤逻辑
+            if (filter === 'all' || itemData.type === filter || (filter === 'collection' && itemData.type === 'rare')) {
+                isEmpty = false;
+                // 稀有度发光边框颜色
+                const rarityColors = { 1: '#eee', 2: '#a5d6a7', 3: '#90caf9', 4: '#ce93d8', 5: '#ffd54f' };
+                const borderColor = rarityColors[itemData.rarity] || '#eee';
+
+                html += `
+                <div class="inventory-item scroll-reveal" style="background: white; border: 1.5px solid ${borderColor}; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative;" 
+                     onclick="openItemDetail('${itemName}')" 
+                     onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)';" 
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <div style="font-size: 38px; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">${itemData.icon}</div>
+                    <div style="font-size: 13px; font-weight: bold; color: var(--ink); margin-bottom: 4px;">${itemName}</div>
+                    <div style="font-size: 11px; color: #888;">拥有: <span style="color:var(--jade); font-weight:bold;">${count}</span></div>
+                    ${itemData.echo ? `<div style="position:absolute; top:-4px; right:-4px; width:12px; height:12px; background:var(--purple); border-radius:50%; box-shadow:0 0 10px var(--purple); animation: pulse 1.5s infinite;" title="蕴含记忆回音"></div>` : ''}
+                </div>
+                `;
+            }
+        }
+    }
+
+    // 3. 空状态展示
+    if (isEmpty) {
+        html = `<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #aaa;">
+                    <div style="font-size: 50px; margin-bottom: 15px; opacity: 0.5;">🪹</div>
+                    这里空空如也，去大世界探索吧！
+                </div>`;
+    }
+    
+    grid.innerHTML = html;
+};
+
+// 兼容别名：如果有别的旧代码试图调用 renderInventory，直接指向 updateInventory
+window.renderInventory = window.updateInventory;
+
+
 let currentInspectItem = null;
 
 // 将英文 type 映射为中文展示
@@ -2211,55 +2259,6 @@ function _initStartingItems() {
     }
 }
 
-// 渲染真实的背包网格
-window.renderInventory = function(filter = 'all') {
-    const grid = document.getElementById('inventory-list');
-    if (!grid) return;
-    
-    _initStartingItems(); 
-    
-    let html = '';
-    let isEmpty = true;
-
-    for (let itemName in gameState.inventory) {
-        const count = gameState.inventory[itemName];
-        if (count > 0) {
-            // 安全读取你自己的 itemDatabase
-            const itemData = (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) 
-                ? itemDatabase[itemName] 
-                : { type: 'unknown', icon: '📦', desc: '未知物品。', rarity: 1 };
-            
-            // 过滤逻辑 (兼容你原来的 html data-type)
-            if (filter === 'all' || itemData.type === filter || (filter === 'collection' && itemData.type === 'rare')) {
-                
-                isEmpty = false;
-                // 稀有度颜色光环
-                const rarityColors = { 1: '#eee', 2: '#a5d6a7', 3: '#90caf9', 4: '#ce93d8', 5: '#ffd54f' };
-                const borderColor = rarityColors[itemData.rarity] || '#eee';
-
-                html += `
-                <div class="inventory-item scroll-reveal" style="background: white; border: 1.5px solid ${borderColor}; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative;" 
-                     onclick="openItemDetail('${itemName}')" 
-                     onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)';" 
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                    <div style="font-size: 38px; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">${itemData.icon}</div>
-                    <div style="font-size: 13px; font-weight: bold; color: var(--ink); margin-bottom: 4px;">${itemName}</div>
-                    <div style="font-size: 11px; color: #888;">拥有: <span style="color:var(--jade); font-weight:bold;">${count}</span></div>
-                    ${itemData.echo ? `<div style="position:absolute; top:-4px; right:-4px; width:12px; height:12px; background:var(--purple); border-radius:50%; box-shadow:0 0 10px var(--purple); animation: pulse 1.5s infinite;" title="蕴含记忆回音"></div>` : ''}
-                </div>
-                `;
-            }
-        }
-    }
-
-    if (isEmpty) {
-        html = `<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #aaa;">
-                    <div style="font-size: 50px; margin-bottom: 15px; opacity: 0.5;">🪹</div>
-                    这里空空如也，去大世界探索吧！
-                </div>`;
-    }
-    grid.innerHTML = html;
-};
 
 // 过滤标签切换
 window.filterInventory = function(type) {
