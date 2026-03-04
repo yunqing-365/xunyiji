@@ -16,6 +16,8 @@ const _exp = {
     keys: { w: false, a: false, s: false, d: false }, facingLeft: false,
     camera: { x: 0, y: 0 }, nearbyNode: null, rafId: null,
     colliders: [], isPaused: false, walkFrame: 0, walkTick:  0,
+    // 👇 新增生态追踪
+    dynamicNodes: [], critters: [], lastSpawnTime: 0
 };
 const WALK_FRAMES = ['🧍', '🚶', '🧍', '🚶‍♀️'];
 
@@ -26,33 +28,29 @@ window.renderExplorationMap = function(sceneKey) {
         return;
     }
 
-    _stopLoop();
-    _exp.sceneKey = sceneKey; _exp.config = config;
-    _exp.isPaused = false; _exp.target = null; _exp.nearbyNode = null;
+    // 播放加载动画，提升沉浸感
+    if (typeof playExplorationLoadingAnim === 'function') {
+        playExplorationLoadingAnim(config.title, () => {
+            _initExplorationState(sceneKey, config);
+        });
+    } else {
+        _initExplorationState(sceneKey, config);
+    }
 
-    WORLD_W = config.exploration.mapWidth || 2400;
-    WORLD_H = config.exploration.mapHeight || 1600;
-    _exp.player = config.exploration.spawnPoint ? { x: config.exploration.spawnPoint.x, y: config.exploration.spawnPoint.y } : { x: WORLD_W / 2, y: WORLD_H / 2 };
-
-    _ensureExplorationView();
-
-    document.querySelectorAll('.view-container').forEach(v => { v.classList.remove('active-view'); v.style.display = ''; });
-    document.getElementById(EXP_VIEW_ID).classList.add('active-view');
-    const dock = document.getElementById('player-dock');
-    if(dock) dock.classList.add('hidden');
-
-    _buildMapLayers(config);
+   _buildMapLayers(config);
     _buildNodes(config.exploration.nodes || []);
     _buildColliders(config.exploration.blockedZones || []);
     _buildMinimap(config);
     _updateHUD(config);
     _renderPlayer();
+
+    // 👇 新增：初始化生态与环境特效
+    _initEcology(config);
+    _spawnEnvironmentParticles(config);
+
     _updateCamera();
     _applyCamera();
     _startLoop();
-
-    if(typeof playSound === 'function') playSound('exploration_enter');
-    if(typeof showNotification === 'function') showNotification(`进入【${config.title}】探索 — 点击移动，靠近节点按 F 交互`, '🗺️', 4500);
 };
 
 function _ensureExplorationView() {
@@ -147,10 +145,20 @@ function _buildColliders(blockedZones) {
 }
 
 function _gameLoop() {
-    if (!_exp.isPaused) { _processKeyboardMove(); _processTargetMove(); _checkProximity(); _tickWalkAnimation(); }
+    if (!_exp.isPaused) { 
+        _processKeyboardMove(); 
+        _processTargetMove(); 
+        _checkProximity(); 
+        _tickWalkAnimation(); 
+        
+        // 👇 新增：让生态物资和活物动起来
+        _tickEcology();
+        _tickCritters();
+    }
     _renderPlayer(); _updateCamera(); _applyCamera(); _updateMinimap();
     _exp.rafId = requestAnimationFrame(_gameLoop);
 }
+
 function _startLoop() { if (_exp.rafId) cancelAnimationFrame(_exp.rafId); _exp.rafId = requestAnimationFrame(_gameLoop); }
 function _stopLoop() { if (_exp.rafId) { cancelAnimationFrame(_exp.rafId); _exp.rafId = null; } }
 
@@ -920,7 +928,7 @@ window._expRuinInteraction = function(idx) {
     const recipeUnlocked = !!gameState[recipeKey];
     const hasItem = (inv[node.data.requireItem] || 0) > 0;
 
-    // Phase 1 元神感应台词
+    // Phase 1 灵识感应台词
     const persona = _detectPersonaForRuin();
     const aiHint = node.data[`aiHint_${persona}`] || node.data.hint;
 
@@ -998,7 +1006,7 @@ window._expRuinInteraction = function(idx) {
     document.body.appendChild(panel);
 };
 
-// 检测元神性格（给废墟面板用）
+// 检测灵识性格（给废墟面板用）
 function _detectPersonaForRuin() {
     const eq = gameState.equipment || {};
     const inv = gameState.inventory || {};
@@ -1120,4 +1128,198 @@ function _nodeMinimapColor(type) {
         ruin: '#444444' // 🌟 新增小地图废墟专属深灰色雷达点
     };
     return MAP[type] || '#aaaaaa'; 
+}
+
+
+// ==========================================
+// 🌿 探索引擎 2.0：动态生态与活物系统
+// ==========================================
+
+function _initEcology(config) {
+    _exp.dynamicNodes = [];
+    _exp.critters = [];
+    document.querySelectorAll('.eco-node, .eco-critter, .exp-particle').forEach(e => e.remove());
+    
+    const ecology = config.exploration.ecology;
+    if (!ecology) return;
+
+    // 初始撒下几生物资
+    for(let i=0; i<ecology.maxDrops / 2; i++) _spawnRandomDrop(ecology);
+    
+    // 生成活物
+    if (ecology.critters) {
+        ecology.critters.forEach(cDef => {
+            for(let i=0; i<cDef.count; i++) _spawnCritter(cDef);
+        });
+    }
+}
+
+function _tickEcology() {
+    const ecology = _exp.config.exploration.ecology;
+    if (!ecology || _exp.dynamicNodes.length >= ecology.maxDrops) return;
+
+    const now = Date.now();
+    if (now - _exp.lastSpawnTime > ecology.spawnInterval) {
+        _exp.lastSpawnTime = now;
+        _spawnRandomDrop(ecology);
+    }
+}
+
+function _spawnRandomDrop(ecology) {
+    // 权重随机池抽取
+    const totalWeight = ecology.dropPool.reduce((sum, item) => sum + item.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let selectedDrop = ecology.dropPool[0];
+    for (let item of ecology.dropPool) {
+        if (rand < item.weight) { selectedDrop = item; break; }
+        rand -= item.weight;
+    }
+
+    // 在可行走区域随机生成坐标
+    let rx, ry;
+    do {
+        rx = Math.random() * WORLD_W;
+        ry = Math.random() * WORLD_H;
+    } while (_collides(rx, ry, 20));
+
+    const dropId = 'eco_drop_' + Date.now() + Math.floor(Math.random()*100);
+    _exp.dynamicNodes.push(dropId);
+
+    const container = document.getElementById('exp-nodes');
+    if (!container) return;
+    
+    const el = document.createElement('div');
+    el.className = 'exp-node eco-node'; 
+    el.dataset.id = dropId;
+    el.dataset.type = 'collect';
+    el.dataset.label = `采集 ${selectedDrop.itemName}`;
+    el.dataset.wx = rx; 
+    el.dataset.wy = ry;
+    
+    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; transform:translate(-50%,-50%) scale(0); opacity:0; cursor:pointer; z-index:12; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
+    
+    // 发光底座与图标
+    el.innerHTML = `
+        <div style="position:absolute; width:40px; height:40px; background:radial-gradient(circle, rgba(126,182,161,0.4) 0%, transparent 70%); border-radius:50%; animation: pulse 2s infinite;"></div>
+        <div style="font-size:24px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4)); animation: float 3s ease-in-out infinite;">${selectedDrop.icon}</div>
+    `;
+
+    el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _collectDynamicDrop(el, selectedDrop.itemName, dropId);
+    });
+
+    container.appendChild(el);
+    
+    // 弹出动画
+    requestAnimationFrame(() => {
+        el.style.transform = 'translate(-50%,-50%) scale(1)';
+        el.style.opacity = '1';
+    });
+}
+
+function _collectDynamicDrop(el, itemName, dropId) {
+    if(typeof playSound === 'function') playSound('collect');
+    
+    // 动态吸附反馈特效
+    el.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    el.style.transform = 'translate(-50%, -150px) scale(1.5)';
+    el.style.opacity = '0';
+    el.style.filter = 'brightness(2) drop-shadow(0 0 20px white)';
+
+    setTimeout(() => {
+        el.remove();
+        _exp.dynamicNodes = _exp.dynamicNodes.filter(id => id !== dropId);
+    }, 600);
+
+    const qty = Math.random() > 0.8 ? 2 : 1; // 小概率暴击双倍
+    if(typeof addItem === 'function') addItem(itemName, qty);
+    if(typeof showNotification === 'function') showNotification(`在路边拾取了【${itemName} ×${qty}】`, '✨');
+}
+
+// 🦋 活物游荡 AI
+function _spawnCritter(cDef) {
+    const rx = Math.random() * WORLD_W;
+    const ry = Math.random() * WORLD_H;
+    const el = document.createElement('div');
+    el.className = 'eco-critter';
+    el.innerHTML = cDef.icon;
+    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; filter:drop-shadow(0 5px 5px rgba(0,0,0,0.3)); transition: top 3s linear, left 3s linear, transform 0.3s; pointer-events:auto; cursor:pointer;`;
+    
+    const critterObj = { el, x: rx, y: ry, tx: rx, ty: ry, type: cDef.behavior, speed: Math.random()*2 + 1 };
+    
+    // 彩蛋互动
+    el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.style.transform = 'scale(2) rotate(360deg)';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
+        if(typeof showNotification === 'function') showNotification(`你惊动了一只小生灵，它留下了一丝灵气。`, '🍃');
+        if(typeof earnStones === 'function') earnStones(5);
+        _exp.critters = _exp.critters.filter(c => c !== critterObj);
+    });
+
+    document.getElementById('exp-nodes').appendChild(el);
+    _exp.critters.push(critterObj);
+}
+
+function _tickCritters() {
+    _exp.critters.forEach(c => {
+        // 到达目标点，分配新目标
+        if (Math.hypot(c.tx - c.x, c.ty - c.y) < 10) {
+            c.tx = c.x + (Math.random() - 0.5) * 300;
+            c.ty = c.y + (Math.random() - 0.5) * 300;
+            c.tx = Math.max(50, Math.min(WORLD_W-50, c.tx));
+            c.ty = Math.max(50, Math.min(WORLD_H-50, c.ty));
+        }
+
+        // 逃跑逻辑：如果玩家靠近，立刻反向移动
+        if (c.type === 'flee' && Math.hypot(_exp.player.x - c.x, _exp.player.y - c.y) < 150) {
+            c.tx = c.x + (c.x - _exp.player.x) * 2;
+            c.ty = c.y + (c.y - _exp.player.y) * 2;
+        }
+
+        // 插值移动
+        c.x += (c.tx - c.x) * 0.02 * c.speed;
+        c.y += (c.ty - c.y) * 0.02 * c.speed;
+
+        c.el.style.left = c.x + 'px';
+        c.el.style.top = c.y + 'px';
+        
+        // 转向
+        if (c.tx < c.x) c.el.style.transform = 'scaleX(-1)';
+        else c.el.style.transform = 'scaleX(1)';
+    });
+}
+
+// ✨ 环境沉浸粒子生成器
+function _spawnEnvironmentParticles(config) {
+    const layer = document.getElementById('exp-click-layer'); // 借用一下顶层
+    if (!layer) return;
+    
+    const pType = config.exploration.ecology?.particleEffect;
+    if (!pType) return;
+
+    const count = 30; // 粒子数量
+    for(let i=0; i<count; i++) {
+        const p = document.createElement('div');
+        p.className = `exp-particle particle-${pType}`;
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = Math.random() * 100 + '%';
+        p.style.animationDuration = (Math.random() * 10 + 5) + 's';
+        p.style.animationDelay = '-' + (Math.random() * 10) + 's';
+        
+        // 不同粒子的外观
+        if (pType === 'bamboo-leaves') p.innerText = '🍃';
+        else if (pType === 'petals') p.innerText = '🌸';
+        else if (pType === 'fireflies') {
+            p.innerText = '';
+            p.style.width = '4px'; p.style.height = '4px';
+            p.style.background = 'var(--jade)';
+            p.style.boxShadow = '0 0 10px var(--jade)';
+            p.style.borderRadius = '50%';
+        }
+        
+        layer.appendChild(p);
+    }
 }

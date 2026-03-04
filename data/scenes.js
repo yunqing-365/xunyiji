@@ -219,7 +219,17 @@ const sceneConfig = {
           }
         }
       ],
-
+    ecology: {
+            maxDrops: 8,
+            spawnInterval: 8000,
+            dropPool: [
+                { itemName: '五香料', icon: '🌶️', rarity: 1, weight: 60 },
+                { itemName: '戏服丝料', icon: '🧵', rarity: 2, weight: 30 }
+            ],
+            critters: [
+                { type: 'cat', icon: '🐈', count: 3, behavior: 'wander' }
+            ],
+            particleEffect: 'petals' // 飘落的花瓣
       /* 不可进入区域（碰撞区，虚拟坐标） */
       blockedZones: [
         { x: 0,    y: 0,    w: 2400, h: 80  }, /* 上边界 */
@@ -349,11 +359,24 @@ const sceneConfig = {
         text: '茶香又回来了……多谢寻遗使。来，我教你宋代七汤点茶之法。',
         options: ['太好了', '暂且告辞']
       }]
-    }
-  }
-},
-
       ],
+
+ ecology: {
+            maxDrops: 12, // 地图上最多同时存在多少个随机物资
+            spawnInterval: 5000, // 每隔多少毫秒尝试生成一个新物资
+            dropPool: [
+                { itemName: '紫苏叶', icon: '🌿', rarity: 1, weight: 50 },
+                { itemName: '山泉水', icon: '💧', rarity: 2, weight: 30 },
+                { itemName: '灵竹露', icon: '🎋', rarity: 3, weight: 10 } // 稀有掉落
+            ],
+            critters: [
+                { type: 'butterfly', icon: '🦋', count: 5, behavior: 'wander' },
+                { type: 'bird', icon: '🕊️', count: 2, behavior: 'flee' }
+            ],
+            particleEffect: 'bamboo-leaves' // 环境粒子类型
+        }
+    }
+},
       blockedZones: [
         { x: 0, y: 0, w: 2600, h: 80 },
         { x: 0, y: 1720, w: 2600, h: 80 },

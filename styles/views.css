@@ -2178,3 +2178,223 @@
   35% { transform: translate(-50%, -50%) skewX(-2deg); }
   66% { filter: grayscale(1) brightness(0.5) contrast(1.2); }
 }
+
+/* 异闻沙盘深度优化 */
+#view-deduction {
+    background: radial-gradient(circle at center, #1a1816 0%, #050505 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 阵眼布局 */
+.deduction-altar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 100px;
+    padding: 60px 0;
+    position: relative;
+}
+
+.deduction-slot {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed rgba(212, 175, 55, 0.4);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.03);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.deduction-slot.active {
+    border: 2px solid var(--gold);
+    background: rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+    transform: scale(1.1);
+}
+
+/* 灵力连接线（推演时显现） */
+.deduction-altar::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    z-index: 0;
+    transition: width 1s ease;
+}
+
+.deducing .deduction-altar::after {
+    width: 200px;
+    animation: glow-pulse 1s infinite;
+}
+
+/* 成功结果框 */
+.success-box {
+    background: rgba(126, 182, 161, 0.1);
+    border: 1px solid var(--jade);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: left;
+    border-left: 5px solid var(--jade);
+}
+
+.success-title {
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.success-discovery {
+    margin-top: 15px;
+    font-size: 13px;
+    color: var(--amber);
+    font-style: italic;
+}
+
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 5px var(--gold); opacity: 0.5; }
+    50% { box-shadow: 0 0 20px var(--gold); opacity: 1; }
+    100% { box-shadow: 0 0 5px var(--gold); opacity: 0.5; }
+}
+
+/* ======================================================
+   📖 万物鉴 2.0 专属样式
+   ====================================================== */
+.comp-tab {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 15px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-family: var(--font-kai);
+    letter-spacing: 1px;
+}
+.comp-tab:hover { color: #ccc; }
+.comp-tab.active {
+    color: var(--gold);
+    border-bottom: 2px solid var(--gold);
+    font-weight: bold;
+    background: linear-gradient(to top, rgba(212,175,55,0.1), transparent);
+}
+
+.compendium-item-card {
+    background: #221f1d;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 已解锁状态：流光溢彩 */
+.compendium-item-card.unlocked {
+    border-color: rgba(212,175,55,0.4);
+    background: linear-gradient(180deg, #2a2622 0%, #1a1816 100%);
+}
+.compendium-item-card.unlocked:hover {
+    transform: translateY(-5px);
+    border-color: var(--gold);
+    box-shadow: 0 10px 20px rgba(212,175,55,0.15);
+}
+
+/* 半解锁状态（已知基础物品）：黑白剪影 */
+.compendium-item-card.locked-known {
+    background: #111;
+    border-style: dashed;
+    cursor: default;
+}
+
+/* 未知稀有品：纯黑保密 */
+.compendium-item-card.locked-secret {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    cursor: default;
+}
+
+.item-icon-box {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.compendium-item-card .item-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.compendium-item-card .item-rarity {
+    font-size: 10px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+}
+
+.compendium-item-card .item-source {
+    font-size: 11px;
+    margin-top: auto;
+    padding-top: 10px;
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ======================================================
+   大世界生态与环境粒子特效
+   ====================================================== */
+
+/* 通用粒子层限制 */
+.exp-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 500;
+    opacity: 0.6;
+}
+
+/* 竹叶飘落/花瓣飘落 (斜向下飘逸) */
+.particle-bamboo-leaves,
+.particle-petals {
+    font-size: 14px;
+    animation: drift-down linear infinite;
+}
+
+/* 萤火虫 (四处飞舞、明灭不定) */
+.particle-fireflies {
+    animation: firefly-wander ease-in-out infinite alternate;
+}
+
+@keyframes drift-down {
+    0% { transform: translate(0, -10vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.8; }
+    100% { transform: translate(-20vw, 100vh) rotate(360deg); opacity: 0; }
+}
+
+@keyframes firefly-wander {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+    25% { transform: translate(20px, -30px) scale(1.5); opacity: 1; }
+    50% { transform: translate(-10px, -50px) scale(0.8); opacity: 0.4; }
+    75% { transform: translate(-30px, -10px) scale(1.2); opacity: 0.9; }
+    100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+}
+
+/* 活物微调 */
+.eco-critter {
+    animation: float 2s ease-in-out infinite;
+}

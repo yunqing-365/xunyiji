@@ -292,14 +292,6 @@ onclick="enterScene('senzhidiyu')">
             <div id="encyclopedia-grid" class="encyclopedia-grid"></div>
         </div>
 
-<div id="encyclopedia-detail-modal" class="modal">
-    <div class="modal-header modal-header-jade">
-        <h3 id="encyclopedia-detail-title">非遗详情</h3>
-        <button class="modal-close" onclick="closeModal('encyclopedia-detail-modal')">×</button>
-    </div>
-    <div class="modal-content" id="encyclopedia-detail-content" style="padding: 30px;">
-    </div>
-</div>
 
 <div id="fragment-gallery-modal" class="modal" style="width: 800px; background: #1a1816; border: 1px solid var(--gold);">
     <div class="modal-header" style="background: transparent; border-bottom: 1px dashed rgba(212,175,55,0.3);">
@@ -366,9 +358,9 @@ onclick="enterScene('senzhidiyu')">
             </div>
         </div>
 
-        <div id="view-yuanshen" class="view-container system-layout">
+        <div id="view-lingshi class="view-container system-layout">
             <div class="section-title">
-                <div>🤖 元神纪 <span class="subtitle" style="margin-left:10px;">AI 智能托管与动态人格演化</span></div>
+                <div>🤖 灵识纪 <span class="subtitle" style="margin-left:10px;">AI 智能托管与动态人格演化</span></div>
             </div>
             
             <div class="ys-layout">
@@ -377,7 +369,7 @@ onclick="enterScene('senzhidiyu')">
                         <div class="ys-avatar-ring">
                             <div class="ys-avatar-icon">🧑‍💻</div>
                         </div>
-                        <div class="ys-name">游历者 · 元神壹号</div>
+                        <div class="ys-name">灵识</div>
                         <div class="ys-status" id="ys-current-status">状态：清醒伴游中</div>
                         
                         <div class="ys-traits">
@@ -390,7 +382,7 @@ onclick="enterScene('senzhidiyu')">
 
                     <div class="ys-control-card">
                         <div class="ys-control-title">☁️ 息影漫游 (AI 离线托管)</div>
-                        <div class="ys-control-desc">开启后，你离线时元神将自主游历九州，结交知音，采集物资，并记录所见所闻。</div>
+                        <div class="ys-control-desc">开启后，你离线时灵识将自主游历九州，结交知音，采集物资，并记录所见所闻。</div>
                         <button id="ys-toggle-btn" class="btn btn-full btn-jade" onclick="toggleAIHosting()">
                             启动息影漫游
                         </button>
@@ -510,8 +502,8 @@ onclick="enterScene('senzhidiyu')">
         <button class="dock-item" onclick="switchMainView('view-activity', this)">
             <span class="dock-icon">🎊</span><span class="dock-label">活动</span>
         </button>
-        <button class="dock-item" onclick="switchMainView('view-yuanshen', this); renderYuanshen()">
-            <span class="dock-icon">🤖</span><span class="dock-label">元神</span>
+        <button class="dock-item" onclick="switchMainView('view-lingshi', this); renderLingshi()">
+            <span class="dock-icon">🤖</span><span class="dock-label">灵识</span>
         </button>
         <button class="dock-item" onclick="switchMainView('view-profile', this)">
             <span class="dock-icon">🪬</span><span class="dock-label">化身</span>
@@ -713,19 +705,33 @@ onclick="enterScene('senzhidiyu')">
 </div>
 
 
-<div id="compendium-modal" class="modal" style="width: 700px; background: #2c2a28; color: white;">
-    <div class="modal-header modal-header-gold" style="border-bottom: 1px solid rgba(212,175,55,0.3);">
-        <h3 style="display:flex; align-items:center; gap:8px; color: var(--gold);">📖 万物鉴 · 九州非遗图谱</h3>
+<div id="compendium-modal" class="modal" style="width: 880px; max-height: 85vh; background: #1a1816; color: white; border: 1px solid var(--gold);">
+    <div class="modal-header" style="background: transparent; border-bottom: 1px dashed rgba(212,175,55,0.3); padding: 20px 25px;">
+        <div style="display: flex; flex-direction: column;">
+            <h3 style="color: var(--gold); letter-spacing: 3px; font-size: 20px;">📜 万物鉴 · 九州图谱</h3>
+            <span style="font-size: 12px; color: #888; margin-top: 5px;">凡九州所育、天工所造，皆录于此。</span>
+        </div>
         <button class="modal-close" style="color: #aaa;" onclick="closeModal('compendium-modal')">×</button>
     </div>
     
-    <div class="modal-content" style="padding: 25px; min-height: 400px; overflow-y: auto;">
-        <div style="text-align:center; margin-bottom:20px; color:#aaa; font-size:13px;">
-            历经重重工序打造出最高等级的【传世非遗】方可在此点亮
+    <div class="modal-content" style="padding: 0; display: flex; flex-direction: column; height: 600px;">
+        <div class="compendium-tabs" style="display: flex; background: rgba(255,255,255,0.02); border-bottom: 1px solid #333; padding: 0 20px;">
+            <button class="comp-tab active" onclick="switchCompendiumTab('all', this)">全部收录</button>
+            <button class="comp-tab" onclick="switchCompendiumTab('material', this)">天材地宝 (材料)</button>
+            <button class="comp-tab" onclick="switchCompendiumTab('craft', this)">百工造物 (器物)</button>
+            <button class="comp-tab" onclick="switchCompendiumTab('rare', this)">绝世孤品 (奇珍)</button>
         </div>
-        
-        <div id="compendium-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:20px;">
+
+        <div style="padding: 15px 25px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; color: #aaa;">图谱点亮进度</span>
+            <div style="flex: 1; margin: 0 15px; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
+                <div id="compendium-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber), var(--gold)); transition: width 0.5s ease;"></div>
+            </div>
+            <span id="compendium-progress-text" style="font-size: 14px; font-weight: bold; color: var(--gold);">0 / 0</span>
         </div>
+
+        <div id="compendium-grid" style="flex: 1; padding: 25px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; align-content: start;">
+            </div>
     </div>
 </div>
 
@@ -793,7 +799,7 @@ onclick="enterScene('senzhidiyu')">
         <div id="item-detail-desc" style="font-size: 13px; color: #bbb; line-height: 1.6; text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #2a251e; margin-bottom: 20px;"></div>
 
         <div id="item-echo-container" style="display: none; text-align: left; margin-bottom: 20px; background: rgba(126,182,161,0.05); border-left: 3px solid var(--jade); padding: 12px; border-radius: 4px;">
-            <div style="font-size: 12px; color: var(--jade); margin-bottom: 6px; font-weight: bold;">✨ 元神解析 · 记忆回音</div>
+            <div style="font-size: 12px; color: var(--jade); margin-bottom: 6px; font-weight: bold;">✨ 灵识解析 · 记忆回音</div>
             <div id="item-echo-text" style="font-size: 13px; color: #e8dcc8; font-family: var(--font-kai); font-style: italic; line-height: 1.6; filter: blur(3px); transition: filter 1s ease;">
                 （隐藏在岁月中的低语...）
             </div>

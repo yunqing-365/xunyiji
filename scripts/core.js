@@ -5,8 +5,64 @@
  */
 
 // ============================================================
-// 一、全局游戏配置数据
 // ============================================================
+// 核心模块 1：存档与状态引擎 (Save/Load Manager)
+// ============================================================
+const SaveManager = {
+    saveKey: 'xunyiji_save_v1',
+
+    // 默认初始状态模板
+    getDefaultState() {
+        return {
+            stones: 1200,
+            inventory: {},
+            equipment: { '首': null, '佩': null, '袍': null, '履': null, '持': null },
+            intimacy: {},
+            quests: null, // 将由 quest-engine 初始化
+            achievements: {},
+            unlockedRecipes: [],
+            restoredNodes: [],
+            worldState: 1, // 0晨曦, 1午时, 2黄昏, 3子夜
+            settings: { sound: true, music: true, graphics: true }
+        };
+    },
+
+    // 加载存档
+    load() {
+        try {
+            const savedData = localStorage.getItem(this.saveKey);
+            if (savedData) {
+                // 深度合并存档数据和默认数据，防止新增功能导致读取旧存档报错
+                Object.assign(gameState, this.getDefaultState(), JSON.parse(savedData));
+                console.log("📦 存档读取成功！");
+            } else {
+                Object.assign(gameState, this.getDefaultState());
+                console.log("🌱 创建全新存档！");
+            }
+        } catch (e) {
+            console.error("存档读取失败，已重置", e);
+            Object.assign(gameState, this.getDefaultState());
+        }
+    },
+
+    // 写入存档
+    save() {
+        try {
+            localStorage.setItem(this.saveKey, JSON.stringify(gameState));
+        } catch (e) {
+            console.error("存档保存失败", e);
+        }
+    },
+
+    // 清除存档（重玩）
+    clear() {
+        localStorage.removeItem(this.saveKey);
+        location.reload();
+    }
+};
+
+// 每隔 30 秒自动存档
+setInterval(() => SaveManager.save(), 30000);
 
 // ============================================================
 // 二、全局游戏状态（单例对象）
@@ -58,11 +114,14 @@ const gameState = {
  * 播放音效（占位实现，可对接 Web Audio API）
  * @param {string} type - 音效类型标识
  */
-function playSound(type) {
-    // 若设置中关闭了音效则跳过
-    if (!gameState.settings.sound) return;
-    console.log(`🔊 播放音效: ${type}`);
-}
+window.playSound = function(type) {
+    AudioManager.playSFX(type);
+};
+
+// 监听场景切换事件，自动切换背景音乐
+GameEvent.on('ENTER_SCENE', (sceneKey) => {
+    AudioManager.playBGM(sceneKey);
+});
 
 /**
  * 更新页面顶部灵石数字显示
@@ -80,6 +139,59 @@ function updateStats() {
 /**
  * 根据 gameState.inventory 重新渲染灵犀袋格子
  */
+
+// ============================================================
+// 核心模块 4：体验优化工具 (UX & Performance)
+// ============================================================
+
+// 1. 节流函数 (限制高频触发，如角色走动时的频繁判定)
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+// 2. 防抖函数 (如窗口缩放、搜索输入)
+function debounce(func, delay) {
+    let inDebounce;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(inDebounce);
+        inDebounce = setTimeout(() => func.apply(context, args), delay);
+    }
+}
+
+// 3. 通用加载过渡动画控制器 (统一所有耗时操作的白屏体验)
+const ScreenTransition = {
+    show(text = "灵力流转中...") {
+        let overlay = document.getElementById('global-transition');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'global-transition';
+            overlay.style.cssText = `position:fixed; inset:0; background:var(--paper); background-image:var(--texture-paper); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.4s ease;`;
+            overlay.innerHTML = `<div class="loading-spinner"></div><div id="transition-text" style="margin-top:20px; color:var(--ink); font-weight:bold; letter-spacing:2px;">${text}</div>`;
+            document.body.appendChild(overlay);
+        }
+        document.getElementById('transition-text').innerText = text;
+        overlay.style.pointerEvents = 'auto';
+        requestAnimationFrame(() => overlay.style.opacity = '1');
+    },
+    hide() {
+        const overlay = document.getElementById('global-transition');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.pointerEvents = 'none', 400);
+        }
+    }
+};
 
 // ============================================================
 
@@ -144,10 +256,33 @@ window.dispatchQuestEvent = function(eventName, amount = 1) {
  * @param {string} itemName - 物品名称
  * @param {number} [qty=1]  - 数量
  */
+// 升级后的 addItem：加入图鉴解锁逻辑
 function addItem(itemName, qty = 1) {
     gameState.inventory[itemName] = (gameState.inventory[itemName] || 0) + qty;
-    updateInventory();
+    
+    // 初始化图鉴记忆库
+    if (!gameState.discoveredItems) gameState.discoveredItems = [];
+    
+    // 如果是首次获得，永久点亮图鉴！
+    if (!gameState.discoveredItems.includes(itemName)) {
+        gameState.discoveredItems.push(itemName);
+        // 如果是在大世界探索或造物中，可以悄悄弹个提示
+        console.log(`【图鉴解锁】首次获得：${itemName}`);
+    }
+
+    // 触发事件总线和UI更新
+    if (typeof GameEvent !== 'undefined') {
+        GameEvent.emit('INVENTORY_CHANGED', { item: itemName, amount: qty });
+        GameEvent.emit('collect_item', { amount: qty, item: itemName }); 
+    }
+    if (typeof updateInventory === 'function') updateInventory();
+    if (typeof SaveManager !== 'undefined') SaveManager.save();
 }
+
+// 订阅物品变动事件，自动刷新背包UI，不用再到处手动调
+GameEvent.on('INVENTORY_CHANGED', () => {
+    if (typeof updateInventory === 'function') updateInventory();
+});
 
 /**
  * 从背包扣除灵石，若不足返回 false
@@ -301,6 +436,77 @@ function openStoryModal(name, title, content) {
 
 
 // ============================================================
+// 核心模块 2：全局事件总线 (Event Bus)
+// ============================================================
+const GameEvent = {
+    events: {},
+
+    // 订阅事件
+    on(eventName, listener) {
+        if (!this.events[eventName]) this.events[eventName] = [];
+        this.events[eventName].push(listener);
+    },
+
+    // 触发事件
+    emit(eventName, data) {
+        if (this.events[eventName]) {
+            this.events[eventName].forEach(listener => {
+                try {
+                    listener(data);
+                } catch (e) {
+                    console.error(`事件 ${eventName} 执行报错:`, e);
+                }
+            });
+        }
+        
+        // 【核心解耦】所有事件自动同步给任务引擎
+        if (typeof window.dispatchQuestEvent === 'function') {
+            window.dispatchQuestEvent(eventName, data?.amount || 1);
+        }
+    }
+};
+
+// ============================================================
+// 核心模块 3：通用条件判定引擎 (Condition Engine)
+// 负责解析数据中的 conditions 字段
+// ============================================================
+const ConditionEngine = {
+    /**
+     * 校验一组条件是否全部满足
+     * @param {Array} conditions - 例如 [{ type: "equip", item: "金丝楠木皇冠" }, { type: "time", value: "night" }]
+     */
+    checkAll(conditions) {
+        if (!conditions || conditions.length === 0) return true;
+        
+        return conditions.every(cond => {
+            switch (cond.type) {
+                // 检查装备
+                case 'equip': 
+                    return Object.values(gameState.equipment || {}).includes(cond.item);
+                // 检查背包物品数量
+                case 'item': 
+                    return (gameState.inventory[cond.item] || 0) >= (cond.count || 1);
+                // 检查时辰 (0晨曦, 1午时, 2黄昏, 3子夜)
+                case 'time': 
+                    const timeMap = { 'dawn': 0, 'noon': 1, 'dusk': 2, 'night': 3 };
+                    return gameState.worldState === (typeof cond.value === 'string' ? timeMap[cond.value] : cond.value);
+                // 检查某NPC的羁绊值
+                case 'intimacy':
+                    return (gameState.intimacy[cond.npc] || 0) >= cond.value;
+                // 检查是否完成某任务
+                case 'quest_completed':
+                    return gameState.quests && ['main','side'].some(cat => 
+                        gameState.quests[cat].find(q => q.id === cond.value && q.status === 'completed')
+                    );
+                default:
+                    console.warn("未知的条件类型:", cond.type);
+                    return false;
+            }
+        });
+    }
+};
+
+// ============================================================
 // 六、成就系统
 // ============================================================
 
@@ -387,8 +593,8 @@ window.switchMainView = function(viewId, dockEl) {
         if (typeof renderWorkshop === 'function') renderWorkshop();
     } else if (viewId === 'view-deduction') {
         if (typeof renderDeductionBoard === 'function') renderDeductionBoard();
-    } else if (viewId === 'view-yuanshen') {
-        if (typeof renderYuanshen === 'function') renderYuanshen();
+    } else if (viewId === 'view-lingshi') {
+        if (typeof renderLingshi === 'function') renderLingshi();
     }
 
     // 5. 播放切页音效
@@ -734,109 +940,174 @@ function _showGenericModal(title, text) {
     }
 }
 
+// 
 // ============================================================
-// 十二、元神纪 (AI 托管与人格日志系统)
+// 核心模块 7：灵识数字生命引擎 (Lingshi AI Engine)
+// 纯逻辑调用，数据依赖 data/game-content.js 中的 LINGSHI_DATA
 // ============================================================
 
-let isAIHosting = false;
+if (!gameState.lingshi) {
+    gameState.lingshi = {
+        status: 'awake', // awake (伴游中), roaming (息影漫游)
+        traits: { craft: 0, explore: 0, social: 0, zen: 0 },
+        logs: []
+    };
+}
 
-// 模拟的词库，用于组合成千人千面的优美游记
-const LOG_TEMPLATES = [
-    "戊戌时分，我的元神游荡至【{region}】。耳畔传来阵阵喧闹，原来是遇到了【{npc}】。我们相谈甚欢，探讨了古法技艺的精妙。它甚至指点了我的【{trait}】之道。",
-    "我偷偷溜去了【{region}】的隐秘角落。在一番寻幽探胜后，我竟在石缝间寻得了一份【{item}】！已为你悄悄放入灵犀袋中。",
-    "今日天气甚好。我在【{region}】闲逛时，感知到另一位离线游历者「星渊」的元神经过。我们交换了一缕灵力，我的【{trait}】似乎有所精进。",
-    "长夜漫漫，我潜入【{region}】的工坊，临摹了【{npc}】留下的图纸。虽然未能成器，但对传统非遗的敬畏又深了一分。"
-];
+const LingshiEngine = {
+    // 监听玩家行为并转化性格经验
+    initBehaviorListeners() {
+        GameEvent.on('collect_item', () => this.addTrait('explore', 1));
+        GameEvent.on('explore_move', () => this.addTrait('explore', 0.1));
+        GameEvent.on('craft_success', () => this.addTrait('craft', 5));
+        GameEvent.on('talk_npc', () => this.addTrait('social', 2));
+        GameEvent.on('gift_npc', () => this.addTrait('social', 5));
+        GameEvent.on('play_music', () => this.addTrait('zen', 3));
+        GameEvent.on('brew_tea', () => this.addTrait('zen', 3));
+    },
 
-function toggleAIHosting() {
-    isAIHosting = !isAIHosting;
+    addTrait(type, amount) {
+        if (gameState.lingshi.status === 'roaming') return; 
+        gameState.lingshi.traits[type] += amount;
+    },
+
+    getDominantTrait() {
+        const traits = gameState.lingshi.traits;
+        let max = -1, dom = 'explore';
+        for (let key in traits) {
+            if (traits[key] > max) { max = traits[key]; dom = key; }
+        }
+        return dom;
+    },
+
+    getTraitLabels() {
+        const traits = gameState.lingshi.traits;
+        const getLvl = (val) => val > 100 ? '宗师' : val > 50 ? '精通' : val > 20 ? '初窥' : '萌芽';
+        return {
+            craft:   { name: '🔥 匠心', level: getLvl(traits.craft), val: traits.craft },
+            explore: { name: '🍃 寻幽', level: getLvl(traits.explore), val: traits.explore },
+            social:  { name: '🤝 烟火', level: getLvl(traits.social), val: traits.social },
+            zen:     { name: '🧘 禅定', level: getLvl(traits.zen), val: traits.zen }
+        };
+    },
+
+    // 生成离线推演日志（调用数据层）
+    generateLog() {
+        if (typeof LINGSHI_DATA === 'undefined') return;
+        const domTrait = this.getDominantTrait();
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} · 九州历`;
+        
+        // 从数据层随机抽取
+        const list = LINGSHI_DATA.eventPool[domTrait];
+        const content = list[Math.floor(Math.random() * list.length)];
+        
+        let rewardHtml = '';
+        if (domTrait === 'explore' || Math.random() > 0.6) {
+            const items = ['苏绣丝线', '高岭陶土', '紫苏叶', '陈年宣纸碎片'];
+            const item = items[Math.floor(Math.random() * items.length)];
+            const qty = Math.floor(Math.random() * 2) + 1;
+            addItem(item, qty); // 利用上一步优化的事件总线机制
+            rewardHtml = `<div class="ys-log-reward">🎁 灵识拾遗：获得了【${item} ×${qty}】</div>`;
+        }
+
+        gameState.lingshi.logs.unshift({ time: timeStr, content: content, rewardHtml: rewardHtml, type: domTrait });
+        if(gameState.lingshi.logs.length > 50) gameState.lingshi.logs.pop();
+        SaveManager.save();
+    },
+
+    triggerAwakeQuestion() {
+        if (typeof LINGSHI_DATA === 'undefined') return null;
+        return LINGSHI_DATA.awakeQuestions[Math.floor(Math.random() * LINGSHI_DATA.awakeQuestions.length)];
+    }
+};
+
+LingshiEngine.initBehaviorListeners();
+
+// 托管开关逻辑
+window.toggleAIHosting = function() {
+    const isRoaming = gameState.lingshi.status === 'roaming';
+    if (!isRoaming) {
+        gameState.lingshi.status = 'roaming';
+        showNotification('已进入息影漫游模式，安心离线吧', '☁️');
+        LingshiEngine.generateLog();
+    } else {
+        gameState.lingshi.status = 'awake';
+        const q = LingshiEngine.triggerAwakeQuestion();
+        if (q) {
+            _showGenericModal('🔮 灵犀共鸣：灵识的困惑', 
+                `<div style="margin-bottom:20px;">"${q.q}"</div>
+                 <div style="display:flex; gap:10px; justify-content:center;">
+                    <button class="btn btn-outline" onclick="LingshiEngine.addTrait('${q.opts[0].trait}', ${q.opts[0].add}); closeModal('story-modal'); renderLingshi(); showNotification('${q.opts[0].reply}', '✨');">${q.opts[0].t}</button>
+                    <button class="btn btn-outline" onclick="LingshiEngine.addTrait('${q.opts[1].trait}', ${q.opts[1].add}); closeModal('story-modal'); renderLingshi(); showNotification('${q.opts[1].reply}', '✨');">${q.opts[1].t}</button>
+                 </div>`
+            );
+        }
+    }
+    renderLingshi(); // 刷新 UI
+};
+
+// UI渲染函数
+window.renderLingshi = function() {
+    const isRoaming = gameState.lingshi.status === 'roaming';
     const btn = document.getElementById('ys-toggle-btn');
     const status = document.getElementById('ys-current-status');
     const avatarCard = document.querySelector('.ys-avatar-card');
 
-    if (isAIHosting) {
-        btn.innerText = "唤醒元神 (停止托管)";
-        btn.classList.replace('btn-jade', 'btn-outline');
-        btn.style.color = "var(--cinnabar)";
-        btn.style.borderColor = "var(--cinnabar)";
-        status.innerText = "状态：🌀 正在九州深网中挂机游历...";
-        avatarCard.style.filter = "hue-rotate(45deg)"; // 变成神秘的紫色调
-        showNotification('已进入息影漫游模式，安心离线吧', '☁️');
-    } else {
-        btn.innerText = "启动息影漫游";
-        btn.classList.replace('btn-outline', 'btn-jade');
-        btn.style.color = "";
-        btn.style.borderColor = "";
-        status.innerText = "状态：清醒伴游中";
-        avatarCard.style.filter = "none";
-        
-        // 唤醒时自动结算一次离线奖励和日志
-        generateFakeAILog();
-        showNotification('元神已归位，为你带回了游历见闻！', '✨');
+    if (btn && status && avatarCard) {
+        if (isRoaming) {
+            btn.innerText = "唤醒灵识 (停止托管)";
+            btn.className = "btn btn-full btn-outline";
+            btn.style.borderColor = "var(--cinnabar)";
+            btn.style.color = "var(--cinnabar)";
+            status.innerHTML = "<span class='anim-blink'>🌀 正在九州深网中游历...</span>";
+            avatarCard.style.filter = "hue-rotate(45deg) saturate(1.2)";
+        } else {
+            btn.innerText = "启动息影漫游";
+            btn.className = "btn btn-full btn-jade";
+            btn.style.borderColor = "";
+            btn.style.color = "";
+            status.innerText = "状态：清醒伴游中";
+            avatarCard.style.filter = "none";
+        }
     }
-}
 
-function renderYuanshen() {
-    // 每次点开面板，如果列表是空的，就生成一条初始日志
-    const list = document.getElementById('ys-log-list');
-    if (list && list.children.length === 0) {
-        generateFakeAILog();
+    const traitsBox = document.getElementById('ys-dynamic-traits');
+    if (traitsBox) {
+        const labels = LingshiEngine.getTraitLabels();
+        traitsBox.innerHTML = Object.values(labels).map(data => {
+            const opacity = data.val > 0 ? Math.min(1, 0.4 + data.val / 100) : 0.3;
+            return `
+                <div style="background:rgba(255,255,255,${opacity * 0.2}); border:1px solid rgba(255,255,255,${opacity * 0.4}); padding:6px 12px; border-radius:20px; text-align:center;">
+                    <div style="font-size:12px; font-weight:bold; color:white; opacity:${opacity}">${data.name} <span style="font-weight:normal; font-size:10px;">${data.level}</span></div>
+                    <div style="height:2px; background:rgba(255,255,255,0.2); margin-top:4px; border-radius:2px; overflow:hidden;">
+                        <div style="height:100%; width:${Math.min(100, data.val)}%; background:white;"></div>
+                    </div>
+                </div>`;
+        }).join('');
     }
-}
 
-// 模拟 AI 游记生成器
-function generateFakeAILog() {
     const list = document.getElementById('ys-log-list');
     if (!list) return;
-
-    // 随机抽取素材
-    const regions = ['万艺城', '青岚界', '锦绣坊', '通西域', '百作镇', '浮空云境'];
-    const npcs    = ['陈老板', '周茶娘', '王绣娘', '阿里法德', '李木雕', '风精灵'];
-    const traits  = ['匠心', '寻幽', '烟火', '禅定'];
-    const items   = ['苏绣丝线', '百年红酒', '西域香料', '明前龙井', '沉香木料'];
-
-    const region = regions[Math.floor(Math.random() * regions.length)];
-    const npc    = npcs[Math.floor(Math.random() * npcs.length)];
-    const trait  = traits[Math.floor(Math.random() * traits.length)];
-    const item   = items[Math.floor(Math.random() * items.length)];
-    const tmpl   = LOG_TEMPLATES[Math.floor(Math.random() * LOG_TEMPLATES.length)];
-
-    // 组装文本
-    const text = tmpl
-        .replace('{region}', region)
-        .replace('{npc}', npc)
-        .replace('{trait}', trait)
-        .replace('{item}', item);
-
-    // 决定是否有掉落
-    const hasReward = Math.random() > 0.4; // 60% 概率带回物品
-    const qty = Math.floor(Math.random() * 3) + 1;
-
-    // 获取当前时间
-    const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} · 九州历`;
-
-    // 创建 DOM
-    const logItem = document.createElement('div');
-    logItem.className = 'ys-log-item';
-    logItem.innerHTML = `
-        <div class="ys-log-time">${timeStr}</div>
-        <div class="ys-log-content">
-            ${text}
-            ${hasReward ? `<div class="ys-log-reward">🎁 元神拾遗：获得了【${item} ×${qty}】</div>` : ''}
-        </div>
-    `;
-
-    // 插入到列表最前方
-    list.prepend(logItem);
-
-    // 实际给玩家发奖励
-    if (hasReward) {
-        if (typeof addItem === 'function') addItem(item, qty);
-        playSound('achievement');
+    if (gameState.lingshi.logs.length === 0) {
+        list.innerHTML = `<div class="empty-state">暂无游历记录，尝试开启息影漫游吧。</div>`;
+        return;
     }
-}
 
+    list.innerHTML = gameState.lingshi.logs.map((log, index) => {
+        const colors = { craft: 'var(--cinnabar)', explore: 'var(--jade)', social: 'var(--amber)', zen: 'var(--purple)' };
+        const color = colors[log.type] || 'var(--jade)';
+        return `
+        <div class="ys-log-item" style="border-left-color: ${color}; animation-delay: ${index * 0.1}s;">
+            <style>.ys-log-item:nth-child(${index+1})::before { border-color: ${color}; }</style>
+            <div class="ys-log-time" style="color: ${color};">${log.time}</div>
+            <div class="ys-log-content">
+                ${log.content}
+                ${log.rewardHtml}
+            </div>
+        </div>`;
+    }).join('');
+};
 // ============================================================
 // 十三、天工造物 (合成系统)
 // ============================================================
@@ -1099,49 +1370,162 @@ function _resolveCraftingMutation(recipe) {
 }
 
 // ==========================================
-// 📖 图鉴画廊与溯源提示
+// 📖 万物鉴 2.0：智能图谱与溯源系统
 // ==========================================
+
+let currentCompTab = 'all';
+
 window.openCompendium = function() {
-    closeModal('station-hub-modal'); // 关闭大厅
-    const grid = document.getElementById('compendium-grid');
-    grid.innerHTML = '';
+    // 兼容旧档：如果存档里没有 discoveredItems，根据当前背包反推
+    if (!gameState.discoveredItems) {
+        gameState.discoveredItems = Object.keys(gameState.inventory || {}).filter(k => gameState.inventory[k] > 0);
+    }
     
-    // 过滤出所有带 compendium 数据（终极成品）的配方
-    const ultimateItems = ADVANCED_RECIPES.filter(r => r.compendium);
-    
-    ultimateItems.forEach(item => {
-        const isUnlocked = gameState.unlockedCompendium.includes(item.id);
-        
-        grid.innerHTML += `
-            <div style="background:#3a3836; border:1px solid ${isUnlocked ? 'var(--gold)' : '#555'}; border-radius:10px; padding:15px; text-align:center; position:relative;">
-                <div style="font-size:40px; filter:${isUnlocked ? 'none' : 'brightness(0) invert(0.3)'}; margin-bottom:10px;">
-                    ${item.icon}
-                </div>
-                <div style="color:${isUnlocked ? 'var(--gold)' : '#888'}; font-weight:bold; font-size:13px; margin-bottom:5px;">
-                    ${isUnlocked ? item.name : '未解锁 (???)'}
-                </div>
-                ${isUnlocked ? `<div style="font-size:11px; color:#aaa; line-height:1.4;">${item.compendium.history}</div>` : ''}
-            </div>
-        `;
-    });
+    // 初始化时切回“全部”
+    const firstTab = document.querySelector('.comp-tab');
+    if (firstTab) switchCompendiumTab('all', firstTab);
+    else _renderCompendiumGrid();
+
     openModal('compendium-modal');
+    if (typeof playSound === 'function') playSound('click');
 };
 
-window.viewRecipeTree = function() {
-    if (!currentWorkRecipe) return;
-    let reqsText = [];
-    for (let mat in currentWorkRecipe.reqs) {
-        // 查找这个材料是不是也是某个配方做出来的
-        const subRecipe = ADVANCED_RECIPES.find(r => r.name === mat);
-        if (subRecipe) {
-            const stationName = CRAFTING_STATIONS[subRecipe.station].name;
-            reqsText.push(`🔸前往【${stationName}】加工获得 [${mat}]`);
-        } else {
-            reqsText.push(`🌿前往大世界探索采集获得 [${mat}]`);
+window.switchCompendiumTab = function(tabName, btnEl) {
+    currentCompTab = tabName;
+    document.querySelectorAll('.comp-tab').forEach(btn => btn.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    _renderCompendiumGrid();
+};
+
+function _renderCompendiumGrid() {
+    const grid = document.getElementById('compendium-grid');
+    if (!grid || typeof itemDatabase === 'undefined') return;
+
+    let html = '';
+    let totalItems = 0;
+    let unlockedItems = 0;
+
+    // 遍历整个游戏物品库
+    for (const [itemName, itemData] of Object.entries(itemDatabase)) {
+        // 过滤掉没用的契约、货币
+        if (['currency', 'contract'].includes(itemData.type)) continue;
+
+        // Tab 分类过滤
+        if (currentCompTab === 'material' && itemData.type !== 'material') continue;
+        if (currentCompTab === 'craft' && itemData.type !== 'crafted' && itemData.type !== 'prop') continue;
+        if (currentCompTab === 'rare' && itemData.type !== 'rare' && itemData.type !== 'collection' && itemData.rarity < 4) continue;
+
+        totalItems++;
+        
+        // 判断是否已解锁（在记忆库中，或背包里存在过）
+        const isUnlocked = gameState.discoveredItems.includes(itemName) || (gameState.inventory[itemName] !== undefined);
+        if (isUnlocked) unlockedItems++;
+
+        // 智能溯源获取途径
+        const sourceHint = _findItemSource(itemName, itemData);
+
+        // ── 渲染逻辑：三阶迷雾 ──
+        if (isUnlocked) {
+            // 已解锁：全彩展示
+            html += `
+                <div class="compendium-item-card unlocked" onclick="openItemDetail('${itemName}')">
+                    <div class="item-icon-box" style="background: radial-gradient(circle, rgba(212,175,55,0.15) 0%, transparent 70%);">
+                        <div style="font-size: 45px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));">${itemData.icon}</div>
+                    </div>
+                    <div class="item-name" style="color: var(--gold);">${itemName}</div>
+                    <div class="item-rarity">${'★'.repeat(itemData.rarity || 1)}</div>
+                    <div class="item-source" style="color: var(--jade);">✅ 已点亮</div>
+                </div>`;
+        } 
+        else if (itemData.rarity >= 4 || itemData.type === 'rare' || itemData.type === 'collection') {
+            // 未解锁的稀有品：完全隐藏（绝世孤品）
+            html += `
+                <div class="compendium-item-card locked-secret">
+                    <div class="item-icon-box">
+                        <div style="font-size: 35px; opacity: 0.3;">🔒</div>
+                    </div>
+                    <div class="item-name" style="color: #666; letter-spacing: 2px;">未知奇珍</div>
+                    <div class="item-source" style="color: #555;">机缘未到，暂未现世</div>
+                </div>`;
+        } 
+        else {
+            // 未解锁的基础/中级物品：显示剪影和来源（引导玩家去肝）
+            html += `
+                <div class="compendium-item-card locked-known">
+                    <div class="item-icon-box">
+                        <div style="font-size: 45px; filter: brightness(0) invert(0.3); opacity: 0.6;">${itemData.icon}</div>
+                    </div>
+                    <div class="item-name" style="color: #999;">${itemName}</div>
+                    <div class="item-source" style="color: var(--amber); opacity: 0.8;">📍 来源: ${sourceHint}</div>
+                </div>`;
         }
     }
-    alert(`【${currentWorkRecipe.name}】工序溯源：\n\n${reqsText.join('\n')}`); 
-};
+
+    grid.innerHTML = html || '<div style="grid-column:1/-1; text-align:center; color:#555; padding: 40px;">该分类下暂无造物记录</div>';
+
+    // 更新进度条
+    const progressEl = document.getElementById('compendium-progress-bar');
+    const textEl = document.getElementById('compendium-progress-text');
+    if (progressEl && textEl) {
+        const pct = totalItems === 0 ? 0 : Math.round((unlockedItems / totalItems) * 100);
+        progressEl.style.width = `${pct}%`;
+        textEl.innerText = `${unlockedItems} / ${totalItems} (${pct}%)`;
+        
+        if (pct >= 100 && typeof unlockAchievement === 'function') {
+            unlockAchievement('compendium_master', '万物通明', '点亮《万物鉴》中所有图谱', 1000, '📜');
+        }
+    }
+}
+
+// 🤖 核心黑科技：智能逆向溯源器
+// 自动扫描 scenes.js 和 recipes 推导物品产出地，你以后加物品再也不用手动写来源了！
+function _findItemSource(itemName, itemData) {
+    // 1. 查造物配方
+    if (typeof ADVANCED_RECIPES !== 'undefined') {
+        const advRecipe = ADVANCED_RECIPES.find(r => r.name === itemName || (r.mutations && r.mutations.some(m => m.resultName === itemName)));
+        if (advRecipe) {
+            const stationName = (CRAFTING_STATIONS[advRecipe.station] || {}).name || '天工造物台';
+            return `【天工阁】${stationName}合成`;
+        }
+    }
+    if (typeof CRAFTING_RECIPES !== 'undefined') {
+        if (CRAFTING_RECIPES.some(r => r.name === itemName)) return `【天工阁】基础造物`;
+    }
+
+    // 2. 查大地图采集点
+    if (typeof sceneConfig !== 'undefined') {
+        for (const [sceneKey, config] of Object.entries(sceneConfig)) {
+            if (!config.exploration || !config.exploration.nodes) continue;
+            const node = config.exploration.nodes.find(n => 
+                (n.type === 'collect' && n.data && n.data.itemName === itemName) ||
+                (n.type === 'hidden' && n.data && n.data.rewardItem === itemName)
+            );
+            if (node) {
+                return `探索【${config.title}】获取`;
+            }
+        }
+    }
+
+    // 3. 查商店购买
+    if (typeof shopConfig !== 'undefined') {
+        for (const cat in shopConfig) {
+            if (shopConfig[cat].some && shopConfig[cat].some(i => i.name === itemName)) {
+                return `九州商铺购买`;
+            }
+        }
+    }
+
+    // 4. 查沙盘推演
+    if (typeof DEDUCTION_RECIPES !== 'undefined') {
+        if (DEDUCTION_RECIPES.some(r => r.resultName === itemName)) {
+            return `【异闻沙盘】注入因果推演`;
+        }
+    }
+
+    // 兜底
+    if (itemData.type === 'crafted') return '天工阁工匠制作';
+    return '九州机缘掉落';
+}
 
 // ============================================================
 // 十四、寻遗留言板 (异步社交)
@@ -1395,7 +1779,7 @@ const WEARABLE_DICTIONARY = {
     },
     '佩': {
         '明代紫砂壶':     { emoji: '🫖', effect: '在茶道相关场景中，采集量+1', rarity: 4 },
-        '神秘符文石':     { emoji: '🔮', effect: '推演沙盘时，元神提示精准度提升', rarity: 4 },
+        '神秘符文石':     { emoji: '🔮', effect: '推演沙盘时，灵识提示精准度提升', rarity: 4 },
         '南海珍珠':       { emoji: '💍', effect: '商店交易时随机触发折扣', rarity: 3 },
         '安神香囊':       { emoji: '🪬', effect: '抵御迷雾区域的异常状态', rarity: 2 },
     },
@@ -1835,49 +2219,56 @@ window.executeCrafting = function() {
 // 十八、天地法则底层引擎 (全局时间、日夜交替、世界BUFF)
 // ============================================================
 
-const WORLD_STATES = [
-    { id: 'dawn',  name: '晨曦 · 万物苏醒', icon: '🌅', color: 'var(--jade)', buff: '万物生发：极品晨露等稀有材料现世' },
-    { id: 'noon',  name: '午时 · 艳阳高照', icon: '☀️', color: '#ffb347', buff: '阳气鼎盛：视野开阔，体力充沛' },
-    { id: 'dusk',  name: '黄昏 · 逢魔时刻', icon: '🌇', color: 'var(--cinnabar)', buff: '阴阳交界：百鬼夜行即将开启' },
-    { id: 'night', name: '子夜 · 星汉灿烂', icon: '🌌', color: 'var(--purple)', buff: '天道共鸣：隐世鬼市商人出没' }
-];
+// ============================================================
+// 核心模块 6：世界时间引擎 (World Time Engine)
+// ============================================================
+const WorldTimeEngine = {
+    states: [
+        { id: 'dawn',  name: '晨曦 · 万物苏醒', icon: '🌅', color: 'var(--jade)', buff: '万物生发：极品晨露等稀有材料现世' },
+        { id: 'noon',  name: '午时 · 艳阳高照', icon: '☀️', color: '#ffb347', buff: '阳气鼎盛：视野开阔，体力充沛' },
+        { id: 'dusk',  name: '黄昏 · 逢魔时刻', icon: '🌇', color: 'var(--cinnabar)', buff: '阴阳交界：百鬼夜行即将开启' },
+        { id: 'night', name: '子夜 · 星汉灿烂', icon: '🌌', color: 'var(--purple)', buff: '天道共鸣：隐世鬼市商人出没' }
+    ],
+    tickInterval: null,
 
-// 启动大世界时钟
-window.startWorldClock = function() {
-    function tick() {
-        // 模拟九州时间流逝：现实 120 秒 = 九州一昼夜 (每个时辰 30 秒)
-        const cycleLength = 120000; 
-        const now = Date.now() % cycleLength;
-        const stateIndex = Math.floor((now / cycleLength) * 4);
+    start() {
+        if (this.tickInterval) clearInterval(this.tickInterval);
         
-        const currentState = WORLD_STATES[stateIndex];
-        
-        // 更新 UI
+        // 初始渲染
+        this.updateUI();
+
+        // 真实时间每 30 秒，游戏内流逝一个时辰
+        this.tickInterval = setInterval(() => {
+            gameState.worldState = (gameState.worldState + 1) % 4;
+            this.updateUI();
+            
+            // 触发全服时辰更替事件
+            GameEvent.emit('TIME_CHANGED', this.states[gameState.worldState]);
+            SaveManager.save();
+        }, 30000); 
+    },
+
+    updateUI() {
+        const state = this.states[gameState.worldState];
         const iconEl = document.getElementById('world-icon');
         const timeEl = document.getElementById('world-time');
         const buffEl = document.getElementById('world-buff');
         
         if (iconEl && timeEl && buffEl) {
-            iconEl.innerText = currentState.icon;
-            timeEl.innerText = currentState.name;
-            timeEl.style.color = currentState.color;
-            buffEl.innerText = currentState.buff;
+            iconEl.innerText = state.icon;
+            timeEl.innerText = state.name;
+            timeEl.style.color = state.color;
+            buffEl.innerText = state.buff;
         }
-        
-        // 🌟 核心引擎广播：如果时辰发生了跨越，通知探索地图改变环境！
-        if (typeof gameState !== 'undefined') {
-            if (gameState.worldState !== stateIndex) {
-                gameState.worldState = stateIndex;
-                if (typeof updateWorldEcology === 'function') {
-                    updateWorldEcology(stateIndex, currentState.id);
-                }
-            }
+
+        // 同步探索地图的光影
+        if (typeof updateWorldEcology === 'function') {
+            updateWorldEcology(gameState.worldState, state.id);
         }
-        
-        requestAnimationFrame(tick);
     }
-    tick(); // 启动循环
 };
+
+// 在 auth.js 的 _initPlayerSession 中调用 WorldTimeEngine.start()
 
 // ============================================================
 // 十九、非遗百科 (纯净科普系统)
@@ -2324,7 +2715,7 @@ window.extractMemoryEcho = function() {
     const echoText = document.getElementById('item-echo-text');
     const btn = event.currentTarget;
     
-    btn.innerText = '元神解析中...';
+    btn.innerText = '灵识解析中...';
     btn.disabled = true;
     document.getElementById('item-echo-glow').style.opacity = '1';
 
@@ -2639,4 +3030,48 @@ window.openCrafting = function() {
 // 顺便覆盖从工作台返回大厅的函数
 window.openCraftingHub = function() {
     window.openCrafting();
+};
+
+// ============================================================
+// 核心模块 5：音频管理器 (AudioManager)
+// ============================================================
+const AudioManager = {
+    bgm: new Audio(),
+    sfxPaths: {
+        'click': 'assets/sounds/click.mp3', // 请确保未来有这些文件，目前不会报错，只会静默失败
+        'magic': 'assets/sounds/magic_chime.mp3',
+        'achievement': 'assets/sounds/gong_strike.mp3',
+        'scene_enter': 'assets/sounds/wind_transition.mp3'
+    },
+    bgmPaths: {
+        'wanyicheng': 'assets/sounds/bgm_kunqu.mp3',
+        'qinglanjie': 'assets/sounds/bgm_guqin.mp3',
+        'default': 'assets/sounds/bgm_main.mp3'
+    },
+
+    playSFX(type) {
+        if (!gameState.settings.sound || !this.sfxPaths[type]) return;
+        const sfx = new Audio(this.sfxPaths[type]);
+        sfx.volume = 0.6;
+        sfx.play().catch(e => {/* 忽略浏览器自动播放限制报错 */});
+    },
+
+    playBGM(sceneKey) {
+        if (!gameState.settings.music) {
+            this.bgm.pause();
+            return;
+        }
+        const path = this.bgmPaths[sceneKey] || this.bgmPaths['default'];
+        if (this.bgm.src.endsWith(path)) return; // 已经在播这首了
+
+        // 简单的淡出淡入切换
+        if (!this.bgm.paused) {
+            this.bgm.volume = 0; // 真实项目中可以用 setInterval 做渐变
+        }
+        
+        this.bgm.src = path;
+        this.bgm.loop = true;
+        this.bgm.volume = 0.3;
+        this.bgm.play().catch(e => console.log("等待用户交互以播放BGM"));
+    }
 };

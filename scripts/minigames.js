@@ -395,19 +395,121 @@ document.addEventListener('DOMContentLoaded', () => {
 // 六、异闻录 · 推演沙盘系统 (自由探索解谜引擎)
 // ============================================================
 
-// 预设的推演配方（玩家自由组合）
-const DEDUCTION_RECIPES = [
-    {
-        clue1: '高岭陶土', clue2: '百年红酒', // 为什么是红酒？暗示冷热交替的冰裂，以及西域色彩
-        resultName: '宋代冰裂纹残片', resultIcon: '🏺',
-        successMsg: '不可思议...西域的红酒与东方陶土交融，竟然在表面凝结出了如冰川碎裂般的绝美纹路！你推演出了失传的【宋代冰裂纹残片】！'
+/**
+ * 优化后的异闻沙盘引擎
+ */
+const DEDUCTION_ENGINE = {
+    // 核心因果配方：不再是死板的匹配，而是包含“推演逻辑”
+    recipes: [
+        {
+            materials: ['高岭陶土', '百年红酒'],
+            result: '宋代冰裂纹残片',
+            logic: '红酒的酸性与寒性意外促成了陶土在高温后的极速收缩...',
+            story: '你发现西域红酒中的特殊成分能模拟“冰裂”所需的釉面张力！',
+            discovery: '获得【冰裂纹】核心配方，可前往百作镇复苏“熄灭的龙窑”。'
+        },
+        {
+            materials: ['戏服丝料', '云锦布料'],
+            result: '乱针双面绣手记',
+            logic: '两代织物的经纬线在灵力驱动下产生了奇妙的重叠...',
+            story: '丝线交织间，一位民国绣娘的身影若隐若现，她在向你演示乱针之法。',
+            discovery: '获得【乱针绣】绝学，可前往万艺城唤醒“破败的古戏台”。'
+        }
+    ],
+
+    // 渲染主界面
+    render() {
+        const container = document.getElementById('deduction-inventory');
+        if (!container) return;
+        
+        // 渲染极具质感的物品选择区
+        let html = '';
+        for (const [name, count] of Object.entries(gameState.inventory)) {
+            if (count <= 0) continue;
+            const data = itemDatabase[name] || { icon: '📦' };
+            if (!['material', 'collection', 'prop'].includes(data.type)) continue;
+
+            html += `
+                <div class="deduction-item-card" onclick="DEDUCTION_ENGINE.select('${name}')">
+                    <div class="item-icon">${data.icon}</div>
+                    <div class="item-name">${name}</div>
+                    <div class="item-count">持存: ${count}</div>
+                    ${data.echo ? '<div class="echo-indicator">✦</div>' : ''}
+                </div>`;
+        }
+        container.innerHTML = html || '<div class="empty-hint">行囊中尚无带有“因果”的灵物</div>';
+        this.updateUI();
     },
-    {
-        clue1: '戏服碎布', clue2: '云锦布料', 
-        resultName: '乱针双面绣手记', resultIcon: '📕',
-        successMsg: '两块来自不同时代的丝帛交织在一起，经纬线重组，显露出了隐藏在丝线排布中的【乱针双面绣手记】！'
+
+    // 选中灵物放入阵眼
+    select(name) {
+        const idx = currentDeductionSlots.findIndex(s => s === null);
+        if (idx === -1) {
+            showNotification('阵眼已满，请先移除现有灵物', '⚠️');
+            return;
+        }
+        currentDeductionSlots[idx] = name;
+        playSound('click');
+        this.render();
+    },
+
+    // 执行因果推演
+    async execute() {
+        const [a, b] = currentDeductionSlots;
+        if (!a || !b) return;
+
+        const btn = document.getElementById('btn-execute-deduction');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="anim-spin">🌀</span> 正在溯源因果...';
+
+        // 播放震动与光效
+        document.getElementById('view-deduction').classList.add('deducing');
+        
+        await new Promise(r => setTimeout(r, 2000)); // 模拟计算耗时
+
+        const recipe = this.recipes.find(r => 
+            (r.materials.includes(a) && r.materials.includes(b))
+        );
+
+        if (recipe) {
+            // 扣除材料
+            gameState.inventory[a]--;
+            gameState.inventory[b]--;
+            addItem(recipe.result, 1);
+            
+            this.showSuccess(recipe);
+            if (typeof unlockAchievement === 'function') {
+                unlockAchievement('deduce_first', '因果探知者', '在沙盘中成功推演一段失传因果', 200, '🔮');
+            }
+        } else {
+            this.showFailure();
+        }
+
+        document.getElementById('view-deduction').classList.remove('deducing');
+        currentDeductionSlots = [null, null];
+        btn.disabled = false;
+        btn.innerText = '注入灵力 · 开启推演';
+        this.render();
+    },
+
+    showSuccess(recipe) {
+        const hint = document.getElementById('deduction-ai-hint');
+        hint.innerHTML = `
+            <div class="success-box anim-fade-up">
+                <div class="success-title">✨ 推演大成功：${recipe.result}</div>
+                <p class="success-logic">${recipe.logic}</p>
+                <div class="success-discovery">🗺️ 秘境线索：${recipe.discovery}</div>
+            </div>`;
+        showNotification(`获得稀世绝卷：【${recipe.result}】`, '📜', 5000);
+        playSound('achievement');
+    },
+
+    showFailure() {
+        const hint = document.getElementById('deduction-ai-hint');
+        hint.innerHTML = `<p class="fail-text">❌ 因果不通。这两件灵物之间似乎并无冥冥中的联系，再试着阅读它们的“记忆回音”吧。</p>`;
+        showNotification('推演失败，灵力反噬', '💨');
     }
-];
+};
 
 let currentDeductionSlots = [null, null];
 
