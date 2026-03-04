@@ -281,12 +281,13 @@ function _checkProximity() {
 function triggerInteraction(type, label, idx) {
     if(typeof playSound === 'function') playSound('interact');
     if (type === 'collect') _expCollect(label, idx);
-    else if (type === 'npc') _expNPCDialogue(label, idx);
+    else if (type === 'npc') window._expNPCDialogue(label, idx); // ✅ 加上 window.
     else if (type === 'workshop') _expWorkshop(label, idx);
     else if (type === 'game') _expGame(label);
     else if (type === 'shop') _expShop();
     else if (type === 'rest') _expRest(label);
     else if (type === 'hidden') _expHiddenEvent(label, idx);
+    else if (type === 'ruin') window._expRuinInteraction(idx); // ✅ 废墟也确保调用最新的
     else showNotification(`与【${label}】产生了神秘共鸣…`, '✨');
 }
 

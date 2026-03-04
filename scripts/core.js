@@ -110,18 +110,9 @@ const gameState = {
 // 三、工具函数
 // ============================================================
 
-/**
- * 播放音效（占位实现，可对接 Web Audio API）
- * @param {string} type - 音效类型标识
- */
-window.playSound = function(type) {
-    AudioManager.playSFX(type);
-};
 
-// 监听场景切换事件，自动切换背景音乐
-GameEvent.on('ENTER_SCENE', (sceneKey) => {
-    AudioManager.playBGM(sceneKey);
-});
+
+
 
 /**
  * 更新页面顶部灵石数字显示

@@ -230,6 +230,8 @@ const sceneConfig = {
                 { type: 'cat', icon: '🐈', count: 3, behavior: 'wander' }
             ],
             particleEffect: 'petals' // 飘落的花瓣
+	},
+
       /* 不可进入区域（碰撞区，虚拟坐标） */
       blockedZones: [
         { x: 0,    y: 0,    w: 2400, h: 80  }, /* 上边界 */
@@ -338,30 +340,34 @@ const sceneConfig = {
         },
 
 // 📍 1. 替换青岚界的废墟节点
-{
-  id: 'qlj_ruin_teafarm',
-  type: 'ruin',
-  icon: '🌫️',
-  label: '迷雾茶园废墟',
-  pos: { x: 1400, y: 700 }, // 🌟 修复：必须包裹在 pos 对象中！
-  floatDelay:'1.2s',
-  data: {
-    hint: '这片茶园曾是青岚界最负盛名的点茶圣地，被大遗忘吞噬后，连茶香也消散了……元神低语：缺少一件能镇压水土灵气的造物。',
-    requireItem: '宋式点茶茶碗',       
-    aiHint_mojiaziju: '机关分析：茶园灌溉的地脉阵眼已堵塞，需以茶道灵器重新激活水脉。',
-    requireClues: ['枯萎的茶芽', '残破的茶筅'],  
-    restoredType: 'npc',
-    restoredIcon: '🍵',
-    restoredLabel: '点茶守岁人·周茶娘',
-    restoredData: {
-      name: '周茶娘',
-      dialog: [{ // 🌟 修复：改为引擎标准对话结构
-        text: '茶香又回来了……多谢寻遗使。来，我教你宋代七汤点茶之法。',
-        options: ['太好了', '暂且告辞']
-      }]
-      ],
+  
+      {
+          id: 'qlj_ruin_teafarm',
+          type: 'ruin',
+          icon: '🌫️',
+          label: '迷雾茶园废墟',
+          pos: { x: 1400, y: 700 },
+          floatDelay:'1.2s',
+          data: {
+            hint: '这片茶园曾是青岚界最负盛名的点茶圣地，被大遗忘吞噬后，连茶香也消散了……元神低语：缺少一件能镇压水土灵气的造物。',
+            requireItem: '宋式点茶茶碗',       
+            aiHint_mojiaziju: '机关分析：茶园灌溉的地脉阵眼已堵塞，需以茶道灵器重新激活水脉。',
+            requireClues: ['枯萎的茶芽', '残破的茶筅'],  
+            restoredType: 'npc',
+            restoredIcon: '🍵',
+            restoredLabel: '点茶守岁人·周茶娘',
+            restoredData: {
+              name: '周茶娘',
+              dialog: [{
+                text: '茶香又回来了……多谢寻遗使。来，我教你宋代七汤点茶之法。',
+                options: ['太好了', '暂且告辞']
+              }]
+            } // 🌟修复：闭合 restoredData
+          } // 🌟修复：闭合 data
+        } // 🌟修复：闭合这个废墟 node
+      ], // 🌟修复：闭合 nodes 数组
 
- ecology: {
+      ecology: {
             maxDrops: 12, // 地图上最多同时存在多少个随机物资
             spawnInterval: 5000, // 每隔多少毫秒尝试生成一个新物资
             dropPool: [
@@ -374,10 +380,10 @@ const sceneConfig = {
                 { type: 'bird', icon: '🕊️', count: 2, behavior: 'flee' }
             ],
             particleEffect: 'bamboo-leaves' // 环境粒子类型
-        }
-    }
-},
-      blockedZones: [
+      }, // 🌟修复：闭合 ecology 对象
+
+
+        blockedZones: [
         { x: 0, y: 0, w: 2600, h: 80 },
         { x: 0, y: 1720, w: 2600, h: 80 },
         { x: 1000, y: 200, w: 600, h: 400 }, /* 山石区 */
