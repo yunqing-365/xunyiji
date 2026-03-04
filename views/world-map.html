@@ -1,0 +1,493 @@
+<!--
+    world-map.html
+    寻遗集 · 九州大图视图片段
+    作为 #view-map 的内容，由 index.html 直接包含 / JS 动态注入
+    依赖：scene.js（initMapDrag, enterScene）/ core.js（sceneConfig）
+-->
+
+<div id="view-map" class="view-container">
+
+    <!-- ═══════════════════════════════════════════
+         顶部地图工具栏
+    ═══════════════════════════════════════════ -->
+    <div class="map-toolbar">
+        <div class="map-toolbar-left">
+            <span class="map-title-badge">🗺️ 九州大图</span>
+            <span class="map-subtitle">共 14 处探索区域 · 拖拽漫游</span>
+        </div>
+        <div class="map-toolbar-right">
+            <!-- 区域快速跳转 -->
+            <div class="map-jump-wrap">
+                <select class="map-jump-select" onchange="jumpToRegion(this.value)">
+                    <option value="">快速传送至…</option>
+                    <optgroup label="国风核心区">
+                        <option value="wanyicheng">🏮 万艺城</option>
+                        <option value="baiweixiang">🍡 百味巷</option>
+                        <option value="qinglanjie">🍵 青岚界</option>
+                        <option value="baizuozhen">⚒️ 百作镇</option>
+                        <option value="jinxiufang">👘 锦绣坊</option>
+                        <option value="tongxiyu">🐪 通西域</option>
+                        <option value="yuanjingdu">🏙️ 元境都</option>
+                        <option value="wanxiangtai">🪁 万象台</option>
+                    </optgroup>
+                    <optgroup label="异域探索区">
+                        <option value="ouluoba">🏰 欧罗巴古堡</option>
+                        <option value="midianzhijing">🔮 秘典之境</option>
+                        <option value="cangminghai">🧜‍♀️ 沧溟海域</option>
+                        <option value="fukongyunjing">☁️ 浮空云境</option>
+                        <option value="shahaiyicheng">🏜️ 沙海遗城</option>
+                        <option value="senzhidiyu">🧚 森之低语</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- 图例 -->
+            <button class="map-legend-btn" onclick="toggleMapLegend()">
+                📋 图例
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         图例浮窗
+    ═══════════════════════════════════════════ -->
+    <div class="map-legend" id="map-legend" style="display:none;">
+        <div class="map-legend-title">区域图例</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--cinnabar);"></span> 国风核心区</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--purple);"></span> 异域探索区</div>
+        <div class="map-legend-item"><span>🏮</span> 点击区域锚点进入场景</div>
+        <div class="map-legend-item"><span>🖱️</span> 拖拽地图以探索全貌</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         可拖拽大地图主体
+    ═══════════════════════════════════════════ -->
+    <div class="world-map-container" id="map-scroll">
+        <div class="world-map-content" id="map-content">
+
+            <!-- ─── 地图装饰：山脉 / 河流 / 云雾（SVG 底图层） ─── -->
+            <svg class="map-deco-layer" viewBox="0 0 2800 1800"
+                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+
+                <!-- 主山脉（北方）-->
+                <polyline points="200,200 350,120 500,180 680,100 850,160 1000,80 1150,140 1300,100"
+                          fill="none" stroke="rgba(100,120,100,0.18)" stroke-width="3"/>
+                <!-- 南方丘陵 -->
+                <polyline points="400,1400 600,1280 800,1360 1000,1250 1200,1320 1400,1200 1600,1300"
+                          fill="none" stroke="rgba(100,120,100,0.14)" stroke-width="2"/>
+
+                <!-- 主河流（横贯中部） -->
+                <path d="M 0,900 C 400,850 600,950 900,880 S 1400,820 1800,900 S 2400,960 2800,900"
+                      fill="none" stroke="rgba(100,160,200,0.2)" stroke-width="8"/>
+                <!-- 支流 -->
+                <path d="M 900,880 C 880,1000 920,1100 880,1200"
+                      fill="none" stroke="rgba(100,160,200,0.15)" stroke-width="4"/>
+                <path d="M 1400,820 C 1380,700 1420,600 1380,500"
+                      fill="none" stroke="rgba(100,160,200,0.15)" stroke-width="4"/>
+
+                <!-- 海域（东南） -->
+                <ellipse cx="2400" cy="1300" rx="300" ry="200"
+                         fill="rgba(80,130,180,0.08)"/>
+
+                <!-- 沙漠（西南） -->
+                <ellipse cx="400" cy="1350" rx="250" ry="150"
+                         fill="rgba(200,170,100,0.1)"/>
+
+                <!-- 云雾装饰 -->
+                <text x="150"  y="300"  font-size="60" opacity="0.08">☁️</text>
+                <text x="1800" y="200"  font-size="80" opacity="0.07">☁️</text>
+                <text x="2500" y="500"  font-size="50" opacity="0.08">☁️</text>
+                <text x="600"  y="1550" font-size="40" opacity="0.08">☁️</text>
+            </svg>
+
+            <!-- ─── 区域分界线（虚线划分两大区） ─── -->
+            <div class="map-zone-label map-zone-core">
+                国风核心区
+            </div>
+            <div class="map-zone-label map-zone-outer">
+                异域探索区
+            </div>
+
+            <!-- ════════════════════════════════════
+                 国风核心区 · 8 个锚点
+                 注：baizuozhen 修正了原代码的拼写 Bug
+            ════════════════════════════════════ -->
+
+            <!-- 万艺城 -->
+            <div class="anchor anchor-core"
+                 style="top:48%; left:50%;"
+                 onclick="enterScene(sceneConfig.wanyicheng)"
+                 title="万艺城 · 古典戏曲中枢">
+                <span class="anchor-icon">🏮</span>
+                <span class="anchor-name anchor-name--cinnabar">万艺城</span>
+                <span class="anchor-tag">戏曲</span>
+            </div>
+
+            <!-- 百味巷 -->
+            <div class="anchor anchor-core"
+                 style="top:42%; left:45%;"
+                 onclick="enterScene(sceneConfig.baiweixiang)"
+                 title="百味巷 · 市井烟火美食街">
+                <span class="anchor-icon">🍡</span>
+                <span class="anchor-name">百味巷</span>
+                <span class="anchor-tag">美食</span>
+            </div>
+
+            <!-- 青岚界 -->
+            <div class="anchor anchor-core"
+                 style="top:38%; left:55%;"
+                 onclick="enterScene(sceneConfig.qinglanjie)"
+                 title="青岚界 · 山水茶道隐修地">
+                <span class="anchor-icon">🍵</span>
+                <span class="anchor-name">青岚界</span>
+                <span class="anchor-tag">茶道</span>
+            </div>
+
+            <!-- 百作镇（修正：原代码为 baizuozhen，已统一） -->
+            <div class="anchor anchor-core"
+                 style="top:58%; left:46%;"
+                 onclick="enterScene(sceneConfig.baizuozhen)"
+                 title="百作镇 · 匠心工坊聚集地">
+                <span class="anchor-icon">⚒️</span>
+                <span class="anchor-name">百作镇</span>
+                <span class="anchor-tag">工坊</span>
+            </div>
+
+            <!-- 锦绣坊 -->
+            <div class="anchor anchor-core"
+                 style="top:55%; left:56%;"
+                 onclick="enterScene(sceneConfig.jinxiufang)"
+                 title="锦绣坊 · 华服霓裳绣坊">
+                <span class="anchor-icon">👘</span>
+                <span class="anchor-name">锦绣坊</span>
+                <span class="anchor-tag">织绣</span>
+            </div>
+
+            <!-- 通西域 -->
+            <div class="anchor anchor-core"
+                 style="top:48%; left:38%;"
+                 onclick="enterScene(sceneConfig.tongxiyu)"
+                 title="通西域 · 丝绸之路古道">
+                <span class="anchor-icon">🐪</span>
+                <span class="anchor-name">通西域</span>
+                <span class="anchor-tag">丝路</span>
+            </div>
+
+            <!-- 元境都 -->
+            <div class="anchor anchor-core"
+                 style="top:62%; left:50%;"
+                 onclick="enterScene(sceneConfig.yuanjingdu)"
+                 title="元境都 · 赛博国风未来城">
+                <span class="anchor-icon">🏙️</span>
+                <span class="anchor-name">元境都</span>
+                <span class="anchor-tag">科技</span>
+            </div>
+
+            <!-- 万象台 -->
+            <div class="anchor anchor-core"
+                 style="top:35%; left:50%;"
+                 onclick="enterScene(sceneConfig.wanxiangtai)"
+                 title="万象台 · 民俗节庆聚集地">
+                <span class="anchor-icon">🪁</span>
+                <span class="anchor-name">万象台</span>
+                <span class="anchor-tag">民俗</span>
+            </div>
+
+            <!-- ════════════════════════════════════
+                 异域探索区 · 6 个锚点
+            ════════════════════════════════════ -->
+
+            <!-- 欧罗巴古堡 -->
+            <div class="anchor anchor-outer"
+                 style="top:25%; left:25%;"
+                 onclick="enterScene(sceneConfig.ouluoba)"
+                 title="欧罗巴古堡 · 中世纪异域风情">
+                <span class="anchor-icon">🏰</span>
+                <span class="anchor-name">欧罗巴古堡</span>
+                <span class="anchor-tag anchor-tag--purple">异域</span>
+            </div>
+
+            <!-- 秘典之境 -->
+            <div class="anchor anchor-outer"
+                 style="top:25%; left:75%;"
+                 onclick="enterScene(sceneConfig.midianzhijing)"
+                 title="秘典之境 · 星象神秘学区">
+                <span class="anchor-icon">🔮</span>
+                <span class="anchor-name">秘典之境</span>
+                <span class="anchor-tag anchor-tag--purple">神秘</span>
+            </div>
+
+            <!-- 沧溟海域 -->
+            <div class="anchor anchor-outer"
+                 style="top:75%; left:75%;"
+                 onclick="enterScene(sceneConfig.cangminghai)"
+                 title="沧溟海域 · 深海渔文化秘境">
+                <span class="anchor-icon">🧜‍♀️</span>
+                <span class="anchor-name">沧溟海域</span>
+                <span class="anchor-tag anchor-tag--purple">海洋</span>
+            </div>
+
+            <!-- 浮空云境 -->
+            <div class="anchor anchor-outer"
+                 style="top:15%; left:50%;"
+                 onclick="enterScene(sceneConfig.fukongyunjing)"
+                 title="浮空云境 · 天空之城秘境">
+                <span class="anchor-icon">☁️</span>
+                <span class="anchor-name">浮空云境</span>
+                <span class="anchor-tag anchor-tag--purple">天空</span>
+            </div>
+
+            <!-- 沙海遗城 -->
+            <div class="anchor anchor-outer"
+                 style="top:75%; left:25%;"
+                 onclick="enterScene(sceneConfig.shahaiyicheng)"
+                 title="沙海遗城 · 古埃及文明秘境">
+                <span class="anchor-icon">🏜️</span>
+                <span class="anchor-name">沙海遗城</span>
+                <span class="anchor-tag anchor-tag--purple">遗迹</span>
+            </div>
+
+            <!-- 森之低语 -->
+            <div class="anchor anchor-outer"
+                 style="top:50%; left:82%;"
+                 onclick="enterScene(sceneConfig.senzhidiyu)"
+                 title="森之低语 · 奇幻森林秘境">
+                <span class="anchor-icon">🧚</span>
+                <span class="anchor-name">森之低语</span>
+                <span class="anchor-tag anchor-tag--purple">精灵</span>
+            </div>
+
+        </div><!-- /world-map-content -->
+    </div><!-- /world-map-container -->
+
+</div><!-- /view-map -->
+
+
+<!-- ═══════════════════════════════════════════
+     地图专属样式（Scoped）
+═══════════════════════════════════════════ -->
+<style>
+/* ── 工具栏 ────────────────────────────────── */
+.map-toolbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    background: rgba(252,249,242,0.88);
+    border-bottom: 1px solid #eee5d8;
+    backdrop-filter: blur(8px);
+}
+.map-toolbar-left  { display: flex; align-items: center; gap: 12px; }
+.map-toolbar-right { display: flex; align-items: center; gap: 10px; }
+
+.map-title-badge {
+    background: var(--cinnabar); color: white;
+    padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: bold;
+}
+.map-subtitle { font-size: 12px; color: #888; }
+
+.map-jump-select {
+    padding: 6px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-family: inherit; font-size: 13px; outline: none; cursor: pointer;
+    background: white; color: var(--ink);
+}
+.map-jump-select:focus { border-color: var(--jade); }
+
+.map-legend-btn {
+    padding: 6px 14px; background: white; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 13px; cursor: pointer;
+    font-family: inherit; color: var(--ink); transition: 0.2s;
+}
+.map-legend-btn:hover { background: var(--paper); border-color: var(--jade); }
+
+/* ── 图例浮窗 ────────────────────────────── */
+.map-legend {
+    position: absolute;
+    top: 56px; right: 20px;
+    z-index: 200;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: var(--soft-shadow);
+    min-width: 180px;
+}
+.map-legend-title {
+    font-weight: bold; color: var(--cinnabar);
+    margin-bottom: 10px; font-size: 14px;
+}
+.map-legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #555; margin-bottom: 6px;
+}
+.legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 50%;
+}
+
+/* ── 大地图容器 ─────────────────────────── */
+#view-map {
+    position: relative;
+}
+.world-map-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    cursor: grab;
+    background: radial-gradient(circle at 40% 50%, #e8ede6 0%, #c8d4c8 100%);
+}
+.world-map-container:active { cursor: grabbing; }
+
+.world-map-content {
+    width: 2800px;
+    height: 1800px;
+    position: relative;
+    background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+}
+
+/* ── SVG 装饰底图 ────────────────────────── */
+.map-deco-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── 区域分区文字标签 ────────────────────── */
+.map-zone-label {
+    position: absolute;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    opacity: 0.22;
+    pointer-events: none;
+    z-index: 1;
+}
+.map-zone-core  { top: 55%; left: 45%; color: var(--cinnabar); }
+.map-zone-outer { top: 18%; left: 22%; color: var(--purple, #8a6da8); }
+
+/* ── 区域锚点 ────────────────────────────── */
+.anchor {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    transition: transform 0.25s ease, z-index 0s;
+    animation: float 4s ease-in-out infinite;
+}
+.anchor:hover {
+    transform: scale(1.35);
+    z-index: 20;
+    animation: wave 0.5s ease infinite;
+}
+
+/* 核心区锚点：加金色外圈 */
+.anchor-core .anchor-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(212,175,55,0.25);
+}
+
+.anchor-icon {
+    font-size: 38px;
+    filter: drop-shadow(0 5px 8px rgba(0,0,0,0.22));
+    position: relative;
+    display: block;
+}
+.anchor-name {
+    margin-top: 5px;
+    background: rgba(255,255,255,0.95);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    white-space: nowrap;
+}
+.anchor-name--cinnabar { border-color: var(--cinnabar); color: var(--cinnabar); }
+
+.anchor-tag {
+    margin-top: 3px;
+    font-size: 10px;
+    color: white;
+    background: var(--jade);
+    padding: 1px 7px;
+    border-radius: 8px;
+    opacity: 0.85;
+}
+.anchor-tag--purple { background: var(--purple, #8a6da8); }
+
+/* 异域区锚点图标略小 */
+.anchor-outer .anchor-icon { font-size: 34px; }
+</style>
+
+
+<!-- ═══════════════════════════════════════════
+     地图专属脚本
+═══════════════════════════════════════════ -->
+<script>
+/**
+ * 切换图例浮窗显示/隐藏
+ */
+function toggleMapLegend() {
+    const legend = document.getElementById('map-legend');
+    if (!legend) return;
+    legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
+}
+
+/**
+ * 快速传送：滚动大地图视口到目标区域锚点位置
+ * @param {string} sceneKey
+ */
+function jumpToRegion(sceneKey) {
+    if (!sceneKey) return;
+
+    const config = sceneConfig[sceneKey];
+    if (!config) return;
+
+    // 找到对应锚点元素
+    const anchors = document.querySelectorAll('.anchor');
+    let targetAnchor = null;
+
+    anchors.forEach(el => {
+        if (el.getAttribute('onclick')?.includes(sceneKey)) {
+            targetAnchor = el;
+        }
+    });
+
+    if (!targetAnchor) return;
+
+    const mapScroll  = document.getElementById('map-scroll');
+    const mapContent = document.getElementById('map-content');
+    if (!mapScroll || !mapContent) return;
+
+    // 锚点在地图内容中的绝对位置
+    const anchorLeft = targetAnchor.offsetLeft;
+    const anchorTop  = targetAnchor.offsetTop;
+
+    // 居中显示
+    mapScroll.scrollTo({
+        left: anchorLeft - mapScroll.clientWidth  / 2,
+        top:  anchorTop  - mapScroll.clientHeight / 2,
+        behavior: 'smooth'
+    });
+
+    // 触发锚点脉冲动画提示
+    targetAnchor.style.animation = 'pulse 0.6s ease 3';
+    setTimeout(() => {
+        targetAnchor.style.animation = 'float 4s ease-in-out infinite';
+    }, 2000);
+
+    // 重置下拉框
+    document.querySelector('.map-jump-select').value = '';
+}
+</script>

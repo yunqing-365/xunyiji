@@ -1,0 +1,656 @@
+<!--
+    exploration.html
+    寻遗集 · 沉浸式探索视图片段
+    作为 #view-exploration 的内容骨架，由 index.html 直接包含
+    实际内容由 exploration-engine.js 的 renderExplorationMap() 动态注入
+
+    依赖：
+      exploration-engine.js — 主引擎（移动 / 摄像机 / 交互 / 对话）
+      scene.js              — exitPlayableScene / goToWorkshopFromScene
+      core.js               — gameState / showNotification / playSound
+-->
+
+<div id="view-exploration" class="view-container exp-root">
+
+    <!-- ═══════════════════════════════════════════
+         一、HUD 顶部层
+    ═══════════════════════════════════════════ -->
+    <div class="exp-hud" id="exp-hud">
+
+        <!-- 左：返回 + 区域名 + 天气 -->
+        <div class="exp-hud-left">
+            <button class="exp-hud-btn" onclick="exitExploration()" title="返回场景枢纽">
+                ⬅ 返回枢纽
+            </button>
+            <div class="exp-area-info">
+                <span class="exp-area-name" id="exp-hud-area-name">——</span>
+                <span class="exp-weather"   id="exp-hud-weather">☀️</span>
+            </div>
+        </div>
+
+        <!-- 中：区域副标题 -->
+        <div class="exp-hud-center" id="exp-hud-center">
+            <!-- 由 JS 写入 -->
+        </div>
+
+        <!-- 右：灵石 + 背包 + 小地图切换 -->
+        <div class="exp-hud-right">
+            <div class="exp-stat-chip">
+                🪙 <span id="exp-stones-display">0</span>
+            </div>
+            <button class="exp-hud-btn"
+                    onclick="switchMainView('view-inventory', null)"
+                    title="打开灵犀袋">
+                🎒 灵犀袋
+            </button>
+            <button class="exp-hud-btn" id="exp-minimap-toggle"
+                    onclick="toggleMinimap()" title="切换小地图">
+                🗺️
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════
+         二、主探索画布
+    ═══════════════════════════════════════════ -->
+    <div class="exp-canvas" id="exp-canvas">
+
+        <!-- 多层视差背景 -->
+        <!-- 远景：天空 / 山峦（移动最慢，视差系数 0.2） -->
+        <div class="exp-layer exp-layer-far"    id="exp-bg-far"></div>
+        <!-- 中景：建筑轮廓 / 树林（系数 0.5） -->
+        <div class="exp-layer exp-layer-mid"    id="exp-bg-mid"></div>
+        <!-- 近景地面层（系数 0.85） -->
+        <div class="exp-layer exp-layer-ground" id="exp-bg-ground"></div>
+
+        <!-- 交互节点容器（随地面层平移，z-index 高于背景） -->
+        <div class="exp-nodes-layer" id="exp-nodes"></div>
+
+        <!-- 玩家角色 -->
+        <div class="exp-player" id="exp-player">
+            <div class="exp-player-char"   id="exp-player-char">🧍</div>
+            <div class="exp-player-shadow" id="exp-player-shadow"></div>
+            <div class="exp-player-name"   id="exp-player-name">游历者</div>
+        </div>
+
+        <!-- 透明点击捕捉层（铺满整个世界，由 JS 设置尺寸并绑定事件） -->
+        <div class="exp-click-layer" id="exp-click-layer"></div>
+
+    </div><!-- /exp-canvas -->
+
+
+    <!-- ═══════════════════════════════════════════
+         三、范围交互提示条（靠近节点时显示）
+    ═══════════════════════════════════════════ -->
+    <div class="exp-interact-hint" id="exp-interact-hint">
+        按&nbsp;<kbd class="exp-kbd">F</kbd>&nbsp;与【<span id="exp-hint-label">节点</span>】互动
+        <span class="exp-hint-distance" id="exp-hint-distance"></span>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════
+         四、底部快捷操作提示条
+    ═══════════════════════════════════════════ -->
+    <div class="exp-control-bar">
+        <span class="exp-ctrl-item">🖱️ 点击地面移动</span>
+        <span class="exp-ctrl-sep">·</span>
+        <span class="exp-ctrl-item">⌨️ WASD / 方向键</span>
+        <span class="exp-ctrl-sep">·</span>
+        <span class="exp-ctrl-item">
+            <kbd class="exp-kbd exp-kbd--dark">F</kbd> 交互
+        </span>
+        <span class="exp-ctrl-sep">·</span>
+        <span class="exp-ctrl-item">
+            <kbd class="exp-kbd exp-kbd--dark">ESC</kbd> 关闭面板
+        </span>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════
+         五、小地图（Canvas）
+    ═══════════════════════════════════════════ -->
+    <div class="exp-minimap-wrap" id="exp-minimap-wrap">
+        <div class="exp-minimap-header">
+            <span>小地图</span>
+            <button class="exp-minimap-close" onclick="toggleMinimap()">×</button>
+        </div>
+        <canvas id="exp-minimap"
+                width="160" height="90"
+                onclick="minimapClick(event)"
+                title="点击传送">
+        </canvas>
+        <div class="exp-minimap-legend">
+            <span class="exp-mm-dot" style="background:#7eb6a1;"></span>采集
+            <span class="exp-mm-dot" style="background:#e89a65;"></span>NPC
+            <span class="exp-mm-dot" style="background:#b25d52;"></span>工坊
+            <span class="exp-mm-dot" style="background:#d4af37;"></span>商铺
+            <span class="exp-mm-dot" style="background:#8a6da8;"></span>游戏
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════
+         六、采集粒子特效层（由 JS 动态插入粒子元素）
+    ═══════════════════════════════════════════ -->
+    <div class="exp-collect-fx-layer" id="exp-collect-fx" aria-hidden="true"></div>
+
+
+    <!-- ═══════════════════════════════════════════
+         七、加载遮罩（进入探索时短暂显示）
+    ═══════════════════════════════════════════ -->
+    <div class="exp-loading" id="exp-loading">
+        <div class="exp-loading-inner">
+            <div class="exp-loading-icon">🧭</div>
+            <div class="exp-loading-text" id="exp-loading-text">正在绘制九州山河…</div>
+            <div class="exp-loading-bar">
+                <div class="exp-loading-fill" id="exp-loading-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        以下面板由 exploration-engine.js 动态创建并插入 <body>，
+        此处仅留注释作为索引：
+
+        #exp-dialogue        — NPC 对话框（底部滑入式）
+        #exp-workshop-panel  — 工坊互动弹窗（居中）
+        #exp-hidden-panel    — 奇遇叙事弹窗（居中，紫色星空风格）
+    -->
+
+</div><!-- /view-exploration -->
+
+
+<!-- ═══════════════════════════════════════════
+     探索视图专属样式
+═══════════════════════════════════════════ -->
+<style>
+/* ── 根容器 ──────────────────────────────── */
+.exp-root {
+    position: relative;
+    overflow: hidden;
+    background: #1a2a1a;
+    height: calc(100vh - 72px); /* 减去底部 dock */
+    user-select: none;
+}
+
+/* ══════════════════════════════════════════
+   HUD
+══════════════════════════════════════════ */
+.exp-hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 300;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.52);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    gap: 12px;
+    pointer-events: none;
+}
+.exp-hud-left,
+.exp-hud-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+.exp-hud-center {
+    flex: 1;
+    text-align: center;
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    letter-spacing: 2px;
+    pointer-events: none;
+}
+.exp-hud-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.88);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.15s;
+    white-space: nowrap;
+}
+.exp-hud-btn:hover {
+    background: rgba(255,255,255,0.22);
+    transform: translateY(-1px);
+}
+.exp-area-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.exp-area-name {
+    color: var(--amber, #e89a65);
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+.exp-weather { font-size: 18px; }
+.exp-stat-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(212,175,55,0.3);
+    color: var(--amber, #e89a65);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* ══════════════════════════════════════════
+   主画布
+══════════════════════════════════════════ */
+.exp-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.exp-layer {
+    position: absolute;
+    top: 0; left: 0;
+    will-change: transform;
+    pointer-events: none;
+    background-repeat: repeat;
+}
+.exp-layer-far    { filter: blur(1.5px); }
+.exp-layer-mid    { opacity: 0.6; }
+.exp-layer-ground { opacity: 0.4; }
+
+/* ── 节点层 ───────────────────────────── */
+.exp-nodes-layer {
+    position: absolute;
+    top: 0; left: 0;
+    will-change: transform;
+    pointer-events: none;
+}
+.exp-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+    transition: filter 0.2s ease;
+    animation: float 3.5s ease-in-out infinite;
+}
+.exp-node:hover { filter: brightness(1.3); }
+.exp-node:hover .exp-node-label {
+    background: rgba(212,175,55,0.9);
+    color: var(--ink, #3a3530);
+}
+.exp-node-aura {
+    position: absolute;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.exp-node-icon {
+    font-size: 38px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55));
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s ease;
+}
+.exp-node:hover .exp-node-icon {
+    transform: scale(1.15) translateY(-4px);
+}
+.exp-node-label {
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-top: 5px;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(4px);
+    transition: background 0.2s, color 0.2s;
+    pointer-events: none;
+}
+
+/* ── 玩家角色 ────────────────────────── */
+.exp-player {
+    position: absolute;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+}
+.exp-player-char {
+    font-size: 36px;
+    line-height: 1;
+    filter: drop-shadow(0 6px 8px rgba(0,0,0,0.55));
+    transition: transform 0.1s ease;
+}
+.exp-player-shadow {
+    width: 36px; height: 10px;
+    background: rgba(0,0,0,0.28);
+    border-radius: 50%;
+    margin-top: -2px;
+}
+.exp-player-name {
+    background: rgba(0,0,0,0.65);
+    color: white;
+    padding: 2px 9px;
+    border-radius: 8px;
+    font-size: 11px;
+    white-space: nowrap;
+    margin-top: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* ── 点击移动捕捉层 ───────────────────── */
+.exp-click-layer {
+    position: absolute;
+    top: 0; left: 0;
+    cursor: crosshair;
+    z-index: 5;
+}
+
+/* ══════════════════════════════════════════
+   交互提示条
+══════════════════════════════════════════ */
+.exp-interact-hint {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 400;
+    background: rgba(212,175,55,0.92);
+    color: var(--ink, #3a3530);
+    padding: 9px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    white-space: nowrap;
+    pointer-events: none;
+    display: none;
+    animation: hintFadeIn 0.25s ease;
+}
+.exp-kbd {
+    display: inline-block;
+    background: white;
+    color: #333;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: monospace;
+    border: 1px solid rgba(0,0,0,0.18);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+    margin: 0 3px;
+}
+.exp-kbd--dark {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+}
+.exp-hint-distance {
+    font-size: 11px;
+    opacity: 0.65;
+    margin-left: 6px;
+}
+
+/* ══════════════════════════════════════════
+   底部控制提示栏
+══════════════════════════════════════════ */
+.exp-control-bar {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    background: rgba(0,0,0,0.52);
+    color: rgba(255,255,255,0.6);
+    padding: 7px 22px;
+    border-radius: 24px;
+    font-size: 12px;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+.exp-ctrl-sep  { opacity: 0.3; }
+.exp-ctrl-item { display: flex; align-items: center; gap: 4px; }
+
+/* ══════════════════════════════════════════
+   小地图
+══════════════════════════════════════════ */
+.exp-minimap-wrap {
+    position: absolute;
+    bottom: 60px;
+    right: 16px;
+    z-index: 350;
+    background: rgba(10,16,10,0.8);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 10px;
+    padding: 8px;
+    backdrop-filter: blur(6px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+.exp-minimap-wrap.hidden {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+    pointer-events: none;
+}
+.exp-minimap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+}
+.exp-minimap-close {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.2s;
+}
+.exp-minimap-close:hover { color: white; }
+#exp-minimap {
+    display: block;
+    border-radius: 6px;
+    cursor: crosshair;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.exp-minimap-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    flex-wrap: wrap;
+}
+.exp-mm-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   采集特效层
+══════════════════════════════════════════ */
+.exp-collect-fx-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    pointer-events: none;
+    overflow: hidden;
+}
+.exp-collect-particle {
+    position: absolute;
+    font-size: 22px;
+    pointer-events: none;
+    animation: collectFly 0.85s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+
+/* ══════════════════════════════════════════
+   加载遮罩
+══════════════════════════════════════════ */
+.exp-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(10,16,10,0.93);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease;
+}
+.exp-loading.done {
+    opacity: 0;
+    pointer-events: none;
+}
+.exp-loading-inner  { text-align: center; color: white; }
+.exp-loading-icon   { font-size: 72px; margin-bottom: 20px; animation: float 2s ease-in-out infinite; }
+.exp-loading-text   { font-size: 15px; color: rgba(255,255,255,0.7); letter-spacing: 2px; margin-bottom: 20px; }
+.exp-loading-bar    { width: 220px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 auto; }
+.exp-loading-fill   { height: 100%; background: linear-gradient(to right, var(--jade,#7eb6a1), var(--amber,#e89a65)); border-radius: 4px; width: 0%; transition: width 0.4s ease; }
+
+/* ══════════════════════════════════════════
+   关键帧
+══════════════════════════════════════════ */
+@keyframes hintFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+}
+@keyframes collectFly {
+    0%   { transform: translate(0,0) scale(1);                        opacity: 1; }
+    60%  { transform: translate(var(--tx),var(--ty)) scale(0.85);     opacity: 0.9; }
+    100% { transform: translate(var(--fx),var(--fy)) scale(0.3);      opacity: 0; }
+}
+@keyframes rippleOut {
+    0%   { transform: translate(-50%,-50%) scale(0.4); opacity: 0.8; }
+    100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0;   }
+}
+@keyframes nodeAppear {
+    from { transform: translate(-50%,-50%) scale(0) rotate(-15deg); opacity: 0; }
+    to   { transform: translate(-50%,-50%) scale(1) rotate(0);      opacity: 1; }
+}
+@keyframes slideUpIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes slideDownOut {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(100%); opacity: 0; }
+}
+</style>
+
+
+<!-- ═══════════════════════════════════════════
+     探索视图辅助脚本（主逻辑在 exploration-engine.js）
+═══════════════════════════════════════════ -->
+<script>
+// ── 小地图显隐 ──────────────────────────────
+function toggleMinimap() {
+    document.getElementById('exp-minimap-wrap')?.classList.toggle('hidden');
+}
+
+// ── 加载动画 ────────────────────────────────
+/**
+ * 播放进入探索的加载条动画，结束后调用回调
+ * 由 exploration-engine.js 的 renderExplorationMap() 调用
+ * @param {string}   areaName
+ * @param {Function} onDone
+ */
+function playExplorationLoadingAnim(areaName, onDone) {
+    const overlay = document.getElementById('exp-loading');
+    const textEl  = document.getElementById('exp-loading-text');
+    const fillEl  = document.getElementById('exp-loading-fill');
+    if (!overlay) { onDone?.(); return; }
+
+    overlay.classList.remove('done');
+    overlay.style.opacity      = '1';
+    overlay.style.pointerEvents = 'auto';
+    if (textEl) textEl.innerText  = `正在绘制【${areaName}】山河…`;
+    if (fillEl) fillEl.style.width = '0%';
+
+    const steps  = [20, 50, 75, 95, 100];
+    let idx      = 0;
+    const timer  = setInterval(() => {
+        if (idx >= steps.length) {
+            clearInterval(timer);
+            setTimeout(() => {
+                overlay.classList.add('done');
+                setTimeout(() => onDone?.(), 650);
+            }, 280);
+            return;
+        }
+        if (fillEl) fillEl.style.width = steps[idx++] + '%';
+    }, 180);
+}
+
+// ── 采集粒子特效 ────────────────────────────
+/**
+ * 从节点位置生成道具图标飞向背包的粒子动画
+ * @param {number} originX  - 节点屏幕坐标 x
+ * @param {number} originY  - 节点屏幕坐标 y
+ * @param {string} icon     - 道具 emoji
+ * @param {number} [count=4]
+ */
+function spawnCollectParticles(originX, originY, icon, count = 4) {
+    const layer  = document.getElementById('exp-collect-fx');
+    if (!layer) return;
+
+    const bagBtn  = document.querySelector('[onclick*="view-inventory"]');
+    const bagRect = bagBtn?.getBoundingClientRect();
+    const targetX = bagRect ? bagRect.left + bagRect.width  / 2 : window.innerWidth  - 60;
+    const targetY = bagRect ? bagRect.top  + bagRect.height / 2 : 20;
+
+    for (let i = 0; i < count; i++) {
+        const p  = document.createElement('div');
+        p.className  = 'exp-collect-particle';
+        p.innerText  = icon;
+
+        const sx = originX + (Math.random() - 0.5) * 40;
+        const sy = originY + (Math.random() - 0.5) * 40;
+        const fx = targetX - sx;
+        const fy = targetY - sy;
+
+        p.style.left  = sx + 'px';
+        p.style.top   = sy + 'px';
+        p.style.setProperty('--tx', `${(fx * 0.4 + (Math.random() - 0.5) * 60).toFixed(0)}px`);
+        p.style.setProperty('--ty', `${(fy * 0.4 - 40 - Math.random() * 30).toFixed(0)}px`);
+        p.style.setProperty('--fx', fx.toFixed(0) + 'px');
+        p.style.setProperty('--fy', fy.toFixed(0) + 'px');
+        p.style.animationDelay = (i * 0.08).toFixed(2) + 's';
+
+        layer.appendChild(p);
+        setTimeout(() => p.remove(), 1000 + i * 80);
+    }
+}
+
+// ── HUD 灵石同步 ─────────────────────────────
+function syncExpHUDStones() {
+    const el = document.getElementById('exp-stones-display');
+    if (el && typeof gameState !== 'undefined') el.innerText = gameState.stones;
+}
+</script>

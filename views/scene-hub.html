@@ -1,0 +1,428 @@
+<!--
+    scene-hub.html
+    寻遗集 · 场景枢纽视图片段
+    作为 #view-scene 的内容，由 index.html 直接包含
+    依赖：scene.js（leaveScene, goToWorkshopFromScene, renderExplorationMap）
+          core.js（gameState, sceneConfig）
+-->
+
+<div id="view-scene" class="view-container scene-hub-view">
+
+    <!-- ═══════════════════════════════════════════
+         场景背景层（颜色 + 纹理由 JS 动态写入）
+    ═══════════════════════════════════════════ -->
+    <div class="scene-bg" id="scene-bg"></div>
+
+    <!-- 暗色遮罩，增强可读性 -->
+    <div class="scene-overlay"></div>
+
+    <!-- ═══════════════════════════════════════════
+         场景内容主体
+    ═══════════════════════════════════════════ -->
+    <div class="scene-content">
+
+        <!-- ── 顶部导航栏 ───────────────────────── -->
+        <div class="scene-topbar">
+            <button class="btn scene-back-btn"
+                    onclick="leaveScene()">
+                ⬅ 返回九州大图
+            </button>
+
+            <!-- 当前区域面包屑 -->
+            <div class="scene-breadcrumb">
+                <span>🗺️ 九州大图</span>
+                <span class="breadcrumb-sep">›</span>
+                <span id="scene-breadcrumb-name" class="breadcrumb-current">—</span>
+            </div>
+
+            <!-- 右侧快捷按钮 -->
+            <div class="scene-topbar-right">
+                <button class="scene-quick-btn" onclick="goToWorkshopFromScene()" title="前往天工阁">
+                    ⛩️ 天工阁
+                </button>
+            </div>
+        </div>
+
+        <!-- ── 场景标题区 ────────────────────────── -->
+        <div class="scene-header">
+            <div class="scene-header-inner">
+                <p id="scene-subtitle" class="scene-subtitle"></p>
+                <h1 id="scene-title"   class="scene-title"></h1>
+                <p id="scene-desc"     class="scene-desc"></p>
+
+                <!-- 场景属性标签 -->
+                <div class="scene-meta" id="scene-meta">
+                    <!-- 由 JS 动态填充，如：「戏曲 / 国风核心区 / 适合初探」 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 核心：「进入沉浸探索」主入口 ──────── -->
+        <div class="scene-explore-banner" id="scene-explore-banner">
+            <div class="explore-banner-inner">
+                <div class="explore-banner-icon">🧭</div>
+                <div class="explore-banner-text">
+                    <div class="explore-banner-title">沉浸式探索</div>
+                    <div class="explore-banner-desc">进入 2.5D 漫游视角，WASD 自由行走，与 NPC 对话、工坊互动、采集物资</div>
+                </div>
+                <button class="btn explore-enter-btn" id="explore-enter-btn"
+                        onclick="startExploration()">
+                    ✦ 进入探索
+                </button>
+            </div>
+        </div>
+
+        <!-- ── 行动卡片网格 ──────────────────────── -->
+        <div class="scene-actions-header">
+            <span class="actions-label">⚡ 快捷行动</span>
+            <span class="actions-hint">点击下方卡片直达对应功能</span>
+        </div>
+        <div class="action-grid" id="scene-actions">
+            <!-- 由 scene.js 的 _renderSceneActions() 动态填充 -->
+        </div>
+
+        <!-- ── 场景内快捷传送点 ──────────────────── -->
+        <div class="scene-teleports" id="scene-teleports">
+            <!-- 由 JS 根据场景配置动态渲染（可选） -->
+        </div>
+
+    </div><!-- /scene-content -->
+
+</div><!-- /view-scene -->
+
+
+<!-- ═══════════════════════════════════════════
+     场景枢纽专属样式
+═══════════════════════════════════════════ -->
+<style>
+/* ── 整体视图 ─────────────────────────────── */
+.scene-hub-view {
+    position: relative;
+    overflow: hidden;
+    color: white;
+    min-height: 100%;
+}
+
+/* ── 背景层 ──────────────────────────────── */
+.scene-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(4px) brightness(0.6);
+    transform: scale(1.05); /* 抵消 blur 边缘白边 */
+    z-index: 1;
+    transition: background-color 0.6s ease, background-image 0.6s ease;
+}
+.scene-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.35) 0%,
+        rgba(0,0,0,0.18) 40%,
+        rgba(0,0,0,0.55) 100%
+    );
+    z-index: 2;
+}
+
+/* ── 主内容区（z-index 高于背景） ───────── */
+.scene-content {
+    position: relative;
+    z-index: 10;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 40px 120px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* ── 顶部导航栏 ───────────────────────────── */
+.scene-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 10px;
+    gap: 16px;
+}
+.scene-back-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: white;
+    padding: 8px 18px;
+    font-size: 13px;
+    flex-shrink: 0;
+    backdrop-filter: blur(6px);
+}
+.scene-back-btn:hover {
+    background: rgba(255,255,255,0.28);
+    transform: translateX(-3px);
+}
+.scene-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    opacity: 0.75;
+    flex: 1;
+}
+.breadcrumb-sep     { opacity: 0.5; }
+.breadcrumb-current { opacity: 1; font-weight: bold; color: var(--amber, #e89a65); }
+
+.scene-topbar-right { display: flex; gap: 10px; flex-shrink: 0; }
+.scene-quick-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.2s;
+    backdrop-filter: blur(4px);
+}
+.scene-quick-btn:hover { background: rgba(255,255,255,0.22); }
+
+/* ── 标题区 ───────────────────────────────── */
+.scene-header {
+    padding: 30px 0 20px;
+}
+.scene-header-inner { max-width: 860px; }
+
+.scene-subtitle {
+    font-size: 14px;
+    color: var(--amber, #e89a65);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+.scene-title {
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: bold;
+    letter-spacing: 6px;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.7);
+    margin-bottom: 16px;
+    color: white;
+    line-height: 1.2;
+}
+.scene-desc {
+    font-size: 15px;
+    line-height: 1.9;
+    color: rgba(255,255,255,0.85);
+    max-width: 720px;
+    background: rgba(0,0,0,0.28);
+    padding: 16px 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 16px;
+}
+.scene-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.scene-meta-tag {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.85);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    backdrop-filter: blur(4px);
+}
+
+/* ── 沉浸探索主入口 Banner ─────────────────── */
+.scene-explore-banner {
+    background: linear-gradient(135deg,
+        rgba(212,175,55,0.22) 0%,
+        rgba(178,93,82,0.18) 100%);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+.scene-explore-banner:hover {
+    background: linear-gradient(135deg,
+        rgba(212,175,55,0.32) 0%,
+        rgba(178,93,82,0.26) 100%);
+    border-color: rgba(212,175,55,0.7);
+    box-shadow: 0 8px 30px rgba(212,175,55,0.2);
+}
+.explore-banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.explore-banner-icon {
+    font-size: 44px;
+    flex-shrink: 0;
+    animation: float 4s ease-in-out infinite;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+.explore-banner-text { flex: 1; }
+.explore-banner-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--amber, #e89a65);
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+.explore-banner-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,0.78);
+    line-height: 1.6;
+}
+.explore-enter-btn {
+    background: linear-gradient(135deg, var(--gold, #d4af37), var(--amber, #e89a65));
+    color: var(--ink, #3a3530);
+    font-weight: bold;
+    font-size: 15px;
+    padding: 12px 28px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+.explore-enter-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 10px 28px rgba(212,175,55,0.55);
+    background: linear-gradient(135deg, #e0c040, #f0a855);
+}
+.explore-enter-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ── 快捷行动标题 ──────────────────────────── */
+.scene-actions-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.actions-label {
+    font-size: 15px;
+    font-weight: bold;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 1px;
+}
+.actions-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+}
+
+/* ── 行动卡片网格 ──────────────────────────── */
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding-bottom: 20px;
+}
+.action-card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
+    padding: 24px 16px 20px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.28s ease;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+}
+.action-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.action-card:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-7px);
+    border-color: var(--amber, #e89a65);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.3);
+}
+.action-card:hover::before { opacity: 1; }
+
+.action-icon {
+    font-size: 44px;
+    display: block;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+    transition: transform 0.3s ease;
+}
+.action-card:hover .action-icon { transform: scale(1.15) rotate(-3deg); }
+
+.action-card h3 {
+    font-size: 15px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 5px;
+}
+.action-card p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+}
+</style>
+
+
+<!-- ═══════════════════════════════════════════
+     场景枢纽专属脚本
+═══════════════════════════════════════════ -->
+<script>
+/**
+ * 从场景枢纽进入沉浸探索
+ * 读取当前场景 key，调用 exploration-engine.js
+ */
+function startExploration() {
+    const key = gameState.currentScene
+        ? Object.keys(sceneConfig).find(k => sceneConfig[k].title === gameState.currentScene)
+        : null;
+
+    if (!key) {
+        showNotification('场景加载中，请稍候…', '⏳');
+        return;
+    }
+
+    if (typeof renderExplorationMap === 'function') {
+        renderExplorationMap(key);
+    } else {
+        showNotification('探索引擎尚未加载，请刷新后重试', '⚠️');
+    }
+}
+
+/**
+ * 场景枢纽增强：进入场景时同步更新面包屑、Meta 标签
+ * 由 scene.js 的 enterScene() 调用之后调用此函数，
+ * 或直接在 scene.js 中对此处的 DOM 元素赋值。
+ *
+ * @param {object} config - 场景配置
+ */
+function updateSceneHubMeta(config) {
+    // 面包屑当前区域名
+    const breadcrumb = document.getElementById('scene-breadcrumb-name');
+    if (breadcrumb) breadcrumb.innerText = config.title;
+
+    // Meta 标签（区域分类 + 推荐级别）
+    const metaEl = document.getElementById('scene-meta');
+    if (metaEl) {
+        const tags = [
+            config.subtitle,
+            config.category ?? '探索区域',
+            '建议等级：入门',
+        ];
+        metaEl.innerHTML = tags.map(t =>
+            `<span class="scene-meta-tag">${t}</span>`
+        ).join('');
+    }
+}
+</script>

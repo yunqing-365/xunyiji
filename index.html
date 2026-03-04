@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>寻遗集 · 国风非遗元宇宙</title>
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/layout.css">
+    <link rel="stylesheet" href="styles/views.css">
+</head>
+<body>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <h1 class="auth-title">寻遗集</h1>
+        <p class="auth-slogan">万物皆可造，虚实共相生</p>
+
+        <div class="role-tabs">
+            <button id="tab-player" class="role-tab active" onclick="switchRole('player')">游历者 (玩家)</button>
+            <button id="tab-inheritor" class="role-tab" onclick="switchRole('inheritor')">匠师 (传承人)</button>
+        </div>
+
+        <h2 id="auth-action-title" class="auth-action-title">入卷 (登录)</h2>
+
+        <div id="login-fields">
+            <div class="input-group">
+                <span class="input-icon">👤</span>
+                <input id="login-account" type="text" placeholder="输入名号或传音号 (账号/手机)">
+            </div>
+            <div class="input-group">
+                <span class="input-icon">🔑</span>
+                <input id="login-password" type="password" placeholder="输入入卷密钥 (密码)">
+            </div>
+        </div>
+
+        <div id="register-fields" class="hidden">
+            <div class="input-group input-no-icon">
+                <input id="reg-username" type="text" placeholder="为你的化身起个名字">
+            </div>
+            <div class="input-group input-no-icon">
+                <input id="reg-phone" type="tel" placeholder="输入手机号">
+                <button class="input-action-btn verify-btn" type="button">获取灵符</button>
+            </div>
+            <div class="input-group input-no-icon">
+                <input id="reg-code" type="text" placeholder="输入6位灵符验证码" maxlength="6">
+            </div>
+            <div class="input-group input-no-icon">
+                <input id="reg-password" type="password" placeholder="设置6位以上密钥">
+            </div>
+        </div>
+
+        <button class="btn btn-full" style="margin-top: 10px;" onclick="handleAuth()">登录元境</button>
+        <p id="auth-switch-text" class="auth-switch" onclick="toggleAuthMode()">未有户籍？点击缔结新契约 (注册)</p>
+    </div>
+</div>
+
+<div id="app-screen">
+<header id="main-header" class="app-header">
+        <div class="header-left">
+            <div class="header-logo" style="margin-right: 20px;">寻遗集</div>
+            <div id="player-stats" class="stats">
+                <div class="avatar avatar-sm" style="font-size:18px;">🧭</div>
+                <div class="flex-col">
+                    <span id="display-player-name" class="player-name-tag" style="color:var(--ink); font-weight:normal; margin-left: 6px;">1</span>
+                    <span class="text-small text-sub" style="margin-left: 6px; font-size: 11px;">Lv.1 初入江湖</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div id="world-clock-hud" style="background: rgba(30, 26, 22, 0.85); border: 1.5px solid var(--gold); padding: 6px 20px; border-radius: 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); cursor: pointer;" onclick="showNotification('九州灵气随着时辰流转，某些奇遇只在子夜现世...', '🌌')">
+                <span id="world-icon" style="font-size: 18px; text-shadow: 0 0 10px #fff;">☀️</span>
+                <div style="display: flex; flex-direction: column; line-height: 1.1;">
+                    <span id="world-time" style="font-size: 14px; font-weight: bold; color: var(--gold); font-family: var(--font-kai); letter-spacing: 2px;">午时 · 艳阳高照</span>
+                    <span id="world-buff" style="font-size: 10px; color: var(--jade);">万物生发：采集收益 +10%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <button class="header-icon" onclick="openCheckin()" title="签到">📅<span id="checkin-badge" class="badge header-badge">1</span></button>
+            <button class="header-icon" onclick="openMail()" title="邮件">✉️<span id="mail-badge" class="badge header-badge">3</span></button>
+            <button class="header-icon" onclick="openSettings()" title="设置">⚙️</button>
+            
+            <div class="stat-chip"><span class="text-gold">🪙</span> 灵石: <span id="stone-count">1200</span></div>
+            <div class="stat-chip" style="background: #fdf8e8; border-color: #f5c842;"><span class="text-amber">📜</span> 流转契约: 2</div>
+            
+            <span style="font-size:13px; color:var(--jade); font-weight:bold; margin: 0 10px;">游历者: 1</span>
+            <button class="btn btn-jade btn-sm" onclick="logout()" style="padding: 6px 16px; font-size: 13px;">归隐</button>
+        </div>
+    </header>
+
+    <div id="weather-layer" class="weather-layer"></div>
+
+    <div id="quest-panel" class="quest-panel">
+    <div class="quest-header">
+        <span>📋 任务列表</span>
+        <button id="quest-toggle" class="quest-toggle-btn" onclick="toggleQuestPanel()">▶</button>
+    </div>
+    <div class="quest-tabs">
+        <button class="quest-tab active" data-tab="main">主线</button>
+        <button class="quest-tab" data-tab="daily">日常</button>
+        <button class="quest-tab" data-tab="side">支线</button>
+    </div>
+    <div id="quest-content" class="quest-content"></div>
+</div>
+
+    <main class="main-content" id="main-content">
+        
+        <div id="view-map" class="view-container active-view">
+            <div class="world-map-container" id="map-scroll">
+                <div class="world-map-content" id="map-content">
+                    
+                    <svg class="map-deco-layer" viewBox="0 0 2800 1800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; z-index: 1;">
+                        <polyline points="200,200 350,120 500,180 680,100 850,160 1000,80 1150,140 1300,100" fill="none" stroke="rgba(100,120,100,0.18)" stroke-width="3"/>
+                        <polyline points="400,1400 600,1280 800,1360 1000,1250 1200,1320 1400,1200 1600,1300" fill="none" stroke="rgba(100,120,100,0.14)" stroke-width="2"/>
+                        <path d="M 0,900 C 400,850 600,950 900,880 S 1400,820 1800,900 S 2400,960 2800,900" fill="none" stroke="rgba(100,160,200,0.2)" stroke-width="8"/>
+                        <path d="M 900,880 C 880,1000 920,1100 880,1200" fill="none" stroke="rgba(100,160,200,0.15)" stroke-width="4"/>
+                        <path d="M 1400,820 C 1380,700 1420,600 1380,500" fill="none" stroke="rgba(100,160,200,0.15)" stroke-width="4"/>
+                        <ellipse cx="2400" cy="1300" rx="300" ry="200" fill="rgba(80,130,180,0.08)"/>
+                        <ellipse cx="400" cy="1350" rx="250" ry="150" fill="rgba(200,170,100,0.1)"/>
+                    </svg>
+
+                    <div class="map-zone-label map-zone-core">国风核心区</div>
+                    <div class="map-zone-label map-zone-outer">异域探索区</div>
+
+                    <div class="anchor anchor-core" style="top:48%; left:50%;" 
+onclick="enterScene('wanyicheng')">
+                        <span class="anchor-icon">🏮</span><span class="anchor-name anchor-name--cinnabar">万艺城</span><span class="anchor-tag">戏曲</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:42%; left:45%;" 
+onclick="enterScene('baiweixiang')">
+                        <span class="anchor-icon">🍡</span><span class="anchor-name">百味巷</span><span class="anchor-tag">美食</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:38%; left:55%;" 
+onclick="enterScene('qinglanjie')">
+                        <span class="anchor-icon">🍵</span><span class="anchor-name">青岚界</span><span class="anchor-tag">茶道</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:58%; left:46%;" 
+onclick="enterScene('baizuozhen')">
+                        <span class="anchor-icon">⚒️</span><span class="anchor-name">百作镇</span><span class="anchor-tag">工坊</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:55%; left:56%;" 
+onclick="enterScene('jinxiufang')">
+                        <span class="anchor-icon">👘</span><span class="anchor-name">锦绣坊</span><span class="anchor-tag">织绣</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:48%; left:38%;" 
+onclick="enterScene('tongxiyu')">
+                        <span class="anchor-icon">🐪</span><span class="anchor-name">通西域</span><span class="anchor-tag">丝路</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:62%; left:50%;" 
+onclick="enterScene('yuanjingdu')">
+                        <span class="anchor-icon">🏙️</span><span class="anchor-name">元境都</span><span class="anchor-tag">科技</span>
+                    </div>
+                    <div class="anchor anchor-core" style="top:35%; left:50%;" 
+onclick="enterScene('wanxiangtai')">
+                        <span class="anchor-icon">🪁</span><span class="anchor-name">万象台</span><span class="anchor-tag">民俗</span>
+                    </div>
+
+                    <div class="anchor anchor-outer" style="top:25%; left:25%;" 
+onclick="enterScene('ouluoba')">
+                        <span class="anchor-icon">🏰</span><span class="anchor-name">欧罗巴古堡</span><span class="anchor-tag anchor-tag--purple">异域</span>
+                    </div>
+                    <div class="anchor anchor-outer" style="top:25%; left:75%;" 
+onclick="enterScene('midianzhijing')">
+                        <span class="anchor-icon">🔮</span><span class="anchor-name">秘典之境</span><span class="anchor-tag anchor-tag--purple">神秘</span>
+                    </div>
+                    <div class="anchor anchor-outer" style="top:75%; left:75%;" 
+onclick="enterScene('cangminghai')">
+                        <span class="anchor-icon">🧜‍♀️</span><span class="anchor-name">沧溟海域</span><span class="anchor-tag anchor-tag--purple">海洋</span>
+                    </div>
+                    <div class="anchor anchor-outer" style="top:15%; left:50%;" 
+onclick="enterScene('fukongyunjing')">
+                        <span class="anchor-icon">☁️</span><span class="anchor-name">浮空云境</span><span class="anchor-tag anchor-tag--purple">天空</span>
+                    </div>
+                    <div class="anchor anchor-outer" style="top:75%; left:25%;" 
+onclick="enterScene('shahaiyicheng')">
+                        <span class="anchor-icon">🏜️</span><span class="anchor-name">沙海遗城</span><span class="anchor-tag anchor-tag--purple">遗迹</span>
+                    </div>
+                    <div class="anchor anchor-outer" style="top:50%; left:82%;" 
+onclick="enterScene('senzhidiyu')">
+                        <span class="anchor-icon">🧚</span><span class="anchor-name">森之低语</span><span class="anchor-tag anchor-tag--purple">自然</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+       <div id="view-scene" class="view-container scene-hub-view">
+            <div class="scene-bg" id="scene-bg"></div>
+            <div class="scene-overlay"></div>
+            <div class="scene-content">
+                <div class="scene-topbar">
+                    <button class="btn btn-ghost scene-back-btn" onclick="leaveScene()">⬅ 返回九州大图</button>
+                    <div class="scene-topbar-right">
+                        <button class="btn btn-ghost scene-quick-btn" onclick="goToWorkshopFromScene()">⛩️ 天工阁</button>
+                    </div>
+                </div>
+                <div class="scene-header">
+                    <div class="scene-header-inner">
+                        <p id="scene-subtitle" class="scene-subtitle"></p>
+                        <h1 id="scene-title" class="scene-title"></h1>
+                        <p id="scene-desc" class="scene-desc"></p>
+                    </div>
+                </div>
+                
+                <div class="scene-explore-banner" id="scene-explore-banner">
+                    <div class="explore-banner-inner">
+                        <div class="explore-banner-text">
+                            <button class="btn explore-enter-btn" onclick="startExploration()">✦ 进入探索</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-grid" id="scene-actions"></div>
+            </div>
+        </div>
+
+        <div id="view-inventory" class="view-container system-layout">
+            <div class="section-title">
+                <div>🎒 灵犀袋 <span class="subtitle" style="margin-left:10px;">收集于九州各地的物品与道具</span></div>
+            </div>
+            <div class="inventory-filter">
+                <button class="filter-btn active" data-type="all" onclick="filterInventory('all')">全部</button>
+                <button class="filter-btn" data-type="material" onclick="filterInventory('material')">材料</button>
+                <button class="filter-btn" data-type="prop" onclick="filterInventory('prop')">道具</button>
+                <button class="filter-btn" data-type="collection" onclick="filterInventory('collection')">收藏</button>
+            </div>
+            <div id="inventory-list" class="inventory-grid"></div>
+        </div>
+
+        <div id="view-inheritor-dash" class="view-container system-layout">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>⚙️ 匠师中控台 <span class="subtitle" style="margin-left:10px; font-size:14px; color:#888;">经营工坊，点拨门徒，流转现世</span></div>
+                <button class="btn btn-sm btn-jade" onclick="openPublishModal()">➕ 发布新造物图纸</button>
+            </div>
+            
+            <div class="inheritor-dashboard" id="inheritor-dash-content">
+                </div>
+        </div>
+
+        <div id="publish-blueprint-modal" class="modal">
+            <div class="modal-header modal-header-gold">
+                <h3>📜 撰写新图纸</h3>
+                <button class="modal-close" onclick="closeModal('publish-blueprint-modal')">×</button>
+            </div>
+            <div class="modal-content" style="padding: 24px;">
+                <p style="font-size: 13px; color: #666; margin-bottom: 20px;">发布后，游历者即可在“天工造物台”中解锁该配方。</p>
+                <input type="text" id="bp-name" placeholder="造物名称 (如：青花缠枝莲纹瓶)" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="bp-mat1" placeholder="所需材料1 (如：高岭陶土)" style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+                    <input type="number" id="bp-num1" placeholder="数量" style="width: 80px; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+                </div>
+                <button class="btn btn-gold btn-full" onclick="submitBlueprint()">注入匠心 · 发布图纸</button>
+            </div>
+        </div>
+
+        <div id="view-workshop" class="view-container system-layout">
+            <div class="section-title">
+                <div>⛩️ 天工阁 <span class="subtitle" style="margin-left:10px;">汇聚各路非遗匠师，研习技艺，现世流转</span></div>
+            </div>
+            <div class="workshop-filter">
+                <button class="filter-tab active" data-category="all" onclick="filterWorkshop('all')">全部</button>
+                <button class="filter-tab" data-category="zhixiu" onclick="filterWorkshop('zhixiu')">织绣</button>
+                <button class="filter-tab" data-category="taoci" onclick="filterWorkshop('taoci')">陶瓷</button>
+                <button class="filter-tab" data-category="diaoke" onclick="filterWorkshop('diaoke')">雕刻</button>
+                <button class="filter-tab" data-category="yinlv" onclick="filterWorkshop('yinlv')">音律</button>
+                <button class="filter-tab" data-category="minsu" onclick="filterWorkshop('minsu')">民俗</button>
+                <button class="filter-tab" data-category="shuhua" onclick="filterWorkshop('shuhua')">书画</button>
+            </div>
+            <div id="workshop-grid" class="workshop-grid"></div>
+        </div>
+
+        <div id="view-encyclopedia" class="view-container system-layout">
+            <div class="section-title">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>📚 非遗百科 <span class="subtitle" style="margin-left:10px;">探索千年文化图鉴</span></div>
+                    <button class="btn btn-gold" style="box-shadow: 0 0 10px rgba(212,175,55,0.4);" onclick="openFragmentGallery()">🧩 九州残卷图鉴</button>
+                </div>
+            </div>
+            
+            <div class="encyclopedia-search">
+                <input id="encyclopedia-search-input" class="encyclopedia-search-input" type="text" placeholder="🔍 搜索非遗项目…" oninput="searchEncyclopedia()">
+            </div>
+            <div class="encyclopedia-categories">
+                <button class="encyclopedia-cat active" data-cat="all" onclick="filterEncyclopedia('all')">全部</button>
+                <button class="encyclopedia-cat" data-cat="zhixiu" onclick="filterEncyclopedia('zhixiu')">织绣</button>
+                <button class="encyclopedia-cat" data-cat="taoci" onclick="filterEncyclopedia('taoci')">陶瓷</button>
+                <button class="encyclopedia-cat" data-cat="minsu" onclick="filterEncyclopedia('minsu')">民俗</button>
+            </div>
+            <div id="encyclopedia-grid" class="encyclopedia-grid"></div>
+        </div>
+
+<div id="encyclopedia-detail-modal" class="modal">
+    <div class="modal-header modal-header-jade">
+        <h3 id="encyclopedia-detail-title">非遗详情</h3>
+        <button class="modal-close" onclick="closeModal('encyclopedia-detail-modal')">×</button>
+    </div>
+    <div class="modal-content" id="encyclopedia-detail-content" style="padding: 30px;">
+    </div>
+</div>
+
+<div id="fragment-gallery-modal" class="modal" style="width: 800px; background: #1a1816; border: 1px solid var(--gold);">
+    <div class="modal-header" style="background: transparent; border-bottom: 1px dashed rgba(212,175,55,0.3);">
+        <h3 style="color: var(--gold); letter-spacing: 2px;">🧩 九州残卷图鉴</h3>
+        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-gallery-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 20px;">
+        <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">收集流落九州的特定灵物，唤醒残卷，解锁关于非遗的特殊隐藏信息与大世界奇遇线索。</p>
+        <div id="fragment-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            </div>
+    </div>
+</div>
+
+<div id="fragment-detail-modal" class="modal" style="width: 600px; background: #2c2a28; color: #e8dcc8; border: 1px solid var(--gold);">
+    <div class="modal-header" style="background: transparent; border-bottom: 1px solid #444;">
+        <h3 id="fragment-detail-title" style="color: var(--gold);">残卷详情</h3>
+        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-detail-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 25px;" id="fragment-detail-content">
+        </div>
+</div>
+
+<div id="view-activity" class="view-container system-layout">
+            <div class="section-title">
+                <div>🎊 活动中心 <span class="subtitle" style="margin-left:10px;">限时活动、节庆庆典、灯谜大会</span></div>
+            </div>
+            
+            <div class="event-banner">
+                <div>
+                    <div class="event-banner-title">🏮 元宵灯谜大会</div>
+                    <div class="event-banner-desc">猜灯谜，赢大奖！每日参与可获得海量灵石与限定外观。</div>
+                </div>
+                <div class="event-banner-action">
+                    <button class="btn btn-gold" style="font-size: 16px; padding: 14px 30px;" onclick="openRiddleGame()">立即参与</button>
+                </div>
+            </div>
+
+            <div class="event-list">
+                <div class="event-card type-daily" onclick="openCheckin()">
+                    <div class="event-card-header">
+                        <div class="event-card-title">📅 每日签到</div>
+                        <div class="event-status-tag status-ongoing">进行中</div>
+                    </div>
+                    <div class="event-card-desc" style="height: 40px;">每日签到领取丰厚奖励，连续签到7天可获得限定头像框！</div>
+                    <div class="event-card-time">剩余时间：永久有效</div>
+                    <button class="btn btn-full btn-jade mt-md">前往签到</button>
+                </div>
+                <div class="event-card type-compete" onclick="openMinigame()">
+                    <div class="event-card-header">
+                        <div class="event-card-title">🎨 苏绣创作大赛</div>
+                        <div class="event-status-tag status-upcoming">即将开始</div>
+                    </div>
+                    <div class="event-card-desc" style="height: 40px;">展示你的苏绣技艺，优秀作品将由现实匠人实体化制作！</div>
+                    <div class="event-card-time">开始时间：3日后 10:00</div>
+                </div>
+                <div class="event-card type-seasonal">
+                    <div class="event-card-header">
+                        <div class="event-card-title">🌿 春日采茶节</div>
+                        <div class="event-status-tag status-limited">限时</div>
+                    </div>
+                    <div class="event-card-desc" style="height: 40px;">前往青岚界采集春茶，兑换限定茶道外观与道具！</div>
+                    <div class="event-card-time">剩余时间：12天 08:30:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-yuanshen" class="view-container system-layout">
+            <div class="section-title">
+                <div>🤖 元神纪 <span class="subtitle" style="margin-left:10px;">AI 智能托管与动态人格演化</span></div>
+            </div>
+            
+            <div class="ys-layout">
+                <div class="ys-left-panel">
+                    <div class="ys-avatar-card">
+                        <div class="ys-avatar-ring">
+                            <div class="ys-avatar-icon">🧑‍💻</div>
+                        </div>
+                        <div class="ys-name">游历者 · 元神壹号</div>
+                        <div class="ys-status" id="ys-current-status">状态：清醒伴游中</div>
+                        
+                        <div class="ys-traits">
+                            <span class="ys-trait-tag" style="color: var(--jade); background: #e8f4ef;">🍃 寻幽：高</span>
+                            <span class="ys-trait-tag" style="color: var(--cinnabar); background: #fde8e8;">🔥 匠心：极高</span>
+                            <span class="ys-trait-tag" style="color: var(--amber); background: #fdf3e8;">🤝 烟火：中</span>
+                            <span class="ys-trait-tag" style="color: var(--purple); background: #f0ebf6;">🔮 禅定：初醒</span>
+                        </div>
+                    </div>
+
+                    <div class="ys-control-card">
+                        <div class="ys-control-title">☁️ 息影漫游 (AI 离线托管)</div>
+                        <div class="ys-control-desc">开启后，你离线时元神将自主游历九州，结交知音，采集物资，并记录所见所闻。</div>
+                        <button id="ys-toggle-btn" class="btn btn-full btn-jade" onclick="toggleAIHosting()">
+                            启动息影漫游
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ys-right-panel">
+                    <div class="ys-log-header">
+                        <span style="font-weight: bold; color: var(--ink);">📜 九州浮生录 (AI 游记)</span>
+                        <button class="btn btn-sm btn-outline" onclick="generateFakeAILog()">刷新感知</button>
+                    </div>
+                    <div class="ys-log-list" id="ys-log-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-profile" class="view-container system-layout">
+            <div class="section-title">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🪬 化身纪 <span class="subtitle" style="margin-left:10px; font-size:14px; color:#888;">命途羁绊与灵物穿戴</span></span>
+                    <button class="btn btn-sm btn-outline" onclick="meditatePersona()">🧘 冥想凝神 (刷新性情)</button>
+                </div>
+            </div>
+            
+            <!-- 找到并替换这整个 <div class="profile-layout"> 块 -->
+<div class="profile-layout">
+    <div class="avatar-showcase" id="dynamic-avatar-box">
+        <div class="avatar-showcase-main" id="main-avatar-emoji">🧑</div>
+        <div id="equipped-visuals" style="position:absolute;inset:0;pointer-events:none;z-index:5;"></div>
+        <div class="equip-slots">
+            <button class="slot-btn" style="top:20%;left:15%;" onclick="openEquipModal('首')">首</button>
+            <button class="slot-btn" style="top:45%;left:10%;" onclick="openEquipModal('佩')">佩</button>
+            <button class="slot-btn" style="top:70%;left:15%;" onclick="openEquipModal('袍')">袍</button>
+            <button class="slot-btn" style="top:85%;left:40%;" onclick="openEquipModal('履')">履</button>
+            <button class="slot-btn" style="top:45%;right:10%;" onclick="openEquipModal('持')">持</button>
+        </div>
+        <!-- 新增：化身名号显示 -->
+        <div id="avatar-title-display" style="position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:var(--gold);font-family:var(--font-kai);letter-spacing:2px;opacity:0.9;"></div>
+    </div>
+
+    <div class="profile-details">
+        <!-- 新增：当前装备效果汇总 -->
+        <div class="profile-card" id="equip-buff-card" style="display:none;">
+            <div class="profile-card-title">⚡ 灵物加持 (当前效果)</div>
+            <div id="equip-buff-list" style="display:flex;flex-direction:column;gap:6px;font-size:13px;"></div>
+        </div>
+
+        <div class="profile-card">
+            <div class="profile-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>📖 灵台性情 (属性)</span>
+                <button class="btn btn-sm btn-outline" onclick="meditatePersona()" style="font-size:11px;">🧘 凝神</button>
+            </div>
+            <div id="dynamic-persona-tags" style="display:flex;flex-wrap:wrap;gap:8px;min-height:36px;">
+                <span class="tag-pill" style="background:#eee;color:#666;">暂未冥想，真我未显</span>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="profile-card-title" style="display:flex;justify-content:space-between;width:100%;">
+                <span>🏆 九州历练 (成就图鉴)</span>
+                <span style="font-size:13px;color:var(--jade);font-weight:normal;" id="achievement-progress">进度: 0/4</span>
+            </div>
+            <div class="achievement-grid" id="dynamic-achievement-grid"></div>
+        </div>
+
+        <div class="profile-card">
+            <div class="profile-card-title">🤝 虚境良缘 (社交)</div>
+            <ul class="social-list">
+                <li class="social-item">
+                    <div class="social-info">
+                        <div class="avatar avatar-sm">🧑‍🎤</div>
+                        <div><div class="social-name">星渊 <span class="social-rel">(匠心同好)</span></div></div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="openMessageBoard('致 星渊 的飞鸽传书')">飞鸽传书</button>
+                </li>
+                <li class="social-item">
+                    <div class="social-info">
+                        <div class="avatar avatar-sm">🪡</div>
+                        <div><div class="social-name">王雪萍匠师 <span class="social-rel">(苏绣传承人)</span></div></div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="switchMainView('view-workshop', document.getElementById('dock-workshop')); filterWorkshop('zhixiu');">拜访学艺</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <nav id="player-dock" class="dock hidden">
+        
+        <button class="dock-item active" onclick="switchMainView('view-map', this)">
+            <span class="dock-icon">🗺️</span><span class="dock-label">游历</span>
+        </button>
+        <button class="dock-item" id="dock-workshop" onclick="switchMainView('view-workshop', this); renderWorkshop()">
+            <span class="dock-icon">⛩️</span><span class="dock-label">天工</span>
+        </button>
+        <button class="dock-item" onclick="switchMainView('view-encyclopedia', this); renderEncyclopedia()">
+            <span class="dock-icon">📚</span><span class="dock-label">百科</span>
+        </button>
+
+        <div class="dock-divider"></div>
+
+        <button class="dock-item action-item" onclick="openCrafting()">
+            <span class="dock-icon">🔨</span><span class="dock-label">造物</span>
+        </button>
+        <button class="dock-item action-item" onclick="openMessageBoard('九州神树')">
+            <span class="dock-icon">🎐</span><span class="dock-label">祈福</span>
+        </button>
+        <button class="dock-item" onclick="switchMainView('view-inventory', this)">
+            <span class="dock-icon">🎒</span><span class="dock-label">行囊</span>
+        </button>
+        
+        <div class="dock-divider"></div>
+
+        <button class="dock-item" onclick="switchMainView('view-activity', this)">
+            <span class="dock-icon">🎊</span><span class="dock-label">活动</span>
+        </button>
+        <button class="dock-item" onclick="switchMainView('view-yuanshen', this); renderYuanshen()">
+            <span class="dock-icon">🤖</span><span class="dock-label">元神</span>
+        </button>
+        <button class="dock-item" onclick="switchMainView('view-profile', this)">
+            <span class="dock-icon">🪬</span><span class="dock-label">化身</span>
+        </button>
+
+        <div class="dock-divider"></div>
+        <button class="dock-item action-item" onclick="switchMainView('view-deduction', this); renderDeductionBoard()">
+            <span class="dock-icon">🕵️</span><span class="dock-label">异闻沙盘</span>
+        </button>
+
+    </nav>
+</div>
+
+<div id="notification">
+    <span id="notif-icon" class="notification-icon"></span>
+    <span id="notif-text" class="notification-text"></span>
+</div>
+
+<div id="story-modal" class="modal">
+    <div class="modal-header modal-header-red">
+        <h3 id="story-title">传承故事</h3>
+        <button class="modal-close" onclick="closeModal('story-modal')">×</button>
+    </div>
+    <div class="modal-content" id="story-content" style="line-height: 1.8; font-size: 15px; color: var(--ink); text-indent: 2em; padding: 30px;">
+    </div>
+</div>
+
+<div id="encyclopedia-detail-modal" class="modal">
+    <div class="modal-header modal-header-jade">
+        <h3 id="encyclopedia-detail-title">非遗详情</h3>
+        <button class="modal-close" onclick="closeModal('encyclopedia-detail-modal')">×</button>
+    </div>
+    <div class="modal-content" id="encyclopedia-detail-content" style="padding: 30px;">
+    </div>
+</div>
+
+<div id="shop-panel" class="modal" style="width: 780px;">
+    <div id="shop-header" class="modal-header modal-header-gold">
+        <h3 id="shop-title" style="display:flex; align-items:center; gap:8px;">🏪 九州商行</h3>
+        <div style="font-size: 14px; background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 15px;">
+            灵石: <span id="shop-current-stones" style="color: #ffd700; font-weight: bold;">0</span>
+        </div>
+        <button class="modal-close" onclick="closeShop()">×</button>
+    </div>
+    
+    <div class="shop-layout" style="display: flex; height: 480px;">
+        <div class="shopkeeper-panel" style="width: 220px; background: #fdfaf4; border-right: 1px solid #eee; padding: 25px 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <div id="shop-npc-emoji" style="font-size: 65px; margin-bottom: 10px; animation: float 3s ease-in-out infinite;">👳‍♂️</div>
+            <h4 id="shop-npc-name" style="color: var(--cinnabar); margin-bottom: 5px; font-size: 16px;">沈大掌柜</h4>
+            <div style="font-size: 11px; color: var(--jade); background: #e8f4ef; padding: 3px 8px; border-radius: 10px; margin-bottom: 15px;">童叟无欺 · 概不赊账</div>
+            
+            <div id="shopkeeper-dialogue" style="font-size: 13px; color: var(--ink); background: white; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); line-height: 1.6; position: relative; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                欢迎光临！
+            </div>
+            
+            <button id="haggle-btn" class="btn btn-outline" style="margin-top: auto; width: 100%;" onclick="haggleInShop()">💬 闲聊 / 砍价</button>
+        </div>
+
+        <div class="shop-goods-panel" style="flex: 1; display: flex; flex-direction: column; background: #fff;">
+            <div class="shop-tabs">
+                <button class="shop-tab active" onclick="switchShopTab('material', this)">原料</button>
+                <button class="shop-tab" onclick="switchShopTab('prop', this)">奇珍道具</button>
+                <button class="shop-tab" onclick="switchShopTab('collection', this)">绝版图纸</button>
+            </div>
+            <div class="shop-content" id="shop-grid" style="padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 15px; align-content: start;">
+                </div>
+        </div>
+    </div>
+</div>
+<div id="minigame-panel" class="modal"><div class="modal-header"><h3>🎯 投壶大赛</h3><button class="modal-close" onclick="closeMinigame()">×</button></div></div>
+<div id="riddle-modal" class="modal"><div class="modal-header"><h3>🏮 灯谜大会</h3><button class="modal-close" onclick="closeRiddle()">×</button></div></div>
+
+<div id="checkin-modal" class="modal">
+    <div class="modal-header modal-header-jade">
+        <h3>📅 每日签到</h3>
+        <button class="modal-close" onclick="closeModal('checkin-modal')">×</button>
+    </div>
+    <div class="modal-content">
+        <div id="checkin-calendar" class="checkin-calendar"></div>
+        <button id="checkin-btn" class="btn btn-jade" style="width:100%; margin-top:20px;" onclick="doCheckin()">签到领取奖励</button>
+    </div>
+</div>
+
+<div id="mail-modal" class="modal">
+    <div class="modal-header modal-header-purple">
+        <h3>✉️ 邮件箱</h3>
+        <button class="modal-close" onclick="closeModal('mail-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 0;">
+        <div id="mail-list" class="mail-list"></div>
+    </div>
+</div>
+
+<div id="settings-modal" class="modal">
+    <div class="modal-header" style="background: var(--ink); color: white;">
+        <h3>⚙️ 游戏设置</h3>
+        <button class="modal-close" onclick="closeModal('settings-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 20px;">
+        <div style="display:flex; justify-content:space-between; padding: 15px 0; border-bottom: 1px dashed #ccc;">
+            <span>🎵 背景音乐</span>
+            <span style="color:var(--jade); font-weight:bold;">已开启</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding: 15px 0; border-bottom: 1px dashed #ccc;">
+            <span>🔊 游戏音效</span>
+            <span style="color:var(--jade); font-weight:bold;">已开启</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding: 15px 0;">
+            <span>✨ 高画质模式</span>
+            <span style="color:var(--jade); font-weight:bold;">已开启</span>
+        </div>
+    </div>
+</div>
+
+<div id="station-hub-modal" class="modal" style="width: 750px; background: #fafaf8;">
+    <div class="modal-header modal-header-ink">
+        <h3 style="display:flex; align-items:center; gap:8px;">🛠️ 天工造物台</h3>
+        <button class="modal-close" onclick="closeModal('station-hub-modal')">×</button>
+    </div>
+    
+    <div class="modal-content" style="padding: 20px 25px;">
+        <div style="background: linear-gradient(135deg, #2c2a28, #1a1816); border-radius: 12px; padding: 15px 20px; color: white; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 15px rgba(0,0,0,0.2); border: 1px solid var(--gold);">
+            <div>
+                <div style="font-size: 12px; color: #aaa; margin-bottom: 4px; letter-spacing: 2px;">⚡ 天地法则感应</div>
+                <div id="hub-env-status" style="font-size: 15px; font-weight: bold; color: var(--gold);">
+                    🌅 晨曦 · 万物生发 (极品率小幅提升)
+                </div>
+            </div>
+            <button class="btn btn-sm" style="background: rgba(212,175,55,0.2); color: var(--gold); border: 1px solid var(--gold);" onclick="openCompendium()">
+                📖 万物鉴
+            </button>
+        </div>
+
+        <div style="color: var(--ink); font-size: 14px; font-weight: bold; margin-bottom: 12px; border-left: 3px solid var(--jade); padding-left: 8px;">
+            造物设备矩阵
+        </div>
+        
+        <div id="station-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+            </div>
+    </div>
+</div>
+
+
+<div id="station-work-modal" class="modal" style="width: 700px; background: #fafaf8;">
+    <div class="modal-header modal-header-gold">
+        <h3 id="work-modal-title" style="display:flex; align-items:center; gap:8px;">🛠️ 造物设备</h3>
+        <button class="modal-close" style="font-size: 14px; padding-right: 10px;" onclick="openCraftingHub()">返回 ↩</button>
+    </div>
+    
+    <div class="modal-content" style="display: flex; gap: 0; padding: 0; height: 450px;">
+        
+        <div style="flex: 1; border-right: 1px dashed #ccc; padding: 20px; background: #f4f1eb; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: var(--cinnabar); margin: 0;">📜 可用工序</h4>
+            </div>
+            
+            <div id="work-recipe-list" style="display: flex; flex-direction: column; gap: 10px;">
+            </div>
+        </div>
+        
+        <div style="flex: 1.5; padding: 30px 20px; text-align: center; display: flex; flex-direction: column; position: relative;" id="crafting-station">
+            
+            <div id="crafting-empty-state" style="margin: auto; color: #aaa;">
+                <div style="font-size: 50px; margin-bottom: 10px; opacity: 0.5;">⚖️</div>
+                <p>请在左侧选择一份工序图谱</p>
+            </div>
+            
+            <div id="crafting-active-state" style="display: none; height: 100%; flex-direction: column;">
+                <div id="work-target-icon" style="font-size: 70px; margin-bottom: 10px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); transition: transform 0.3s;">🛠️</div>
+                <h3 id="work-target-name" style="color: var(--ink); margin-bottom: 5px;">物品名称</h3>
+                <div id="work-target-desc" style="font-size: 12px; color: #888; margin-bottom: 25px; padding: 0 20px;">物品描述</div>
+                
+                <h4 style="margin-bottom: 15px; color: var(--gold); font-size: 14px;">— 所需材料 —</h4>
+                
+                <div id="work-req-mats" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-bottom: auto;">
+                </div>
+                
+                <div style="width: 100%; background: #e0e0e0; border-radius: 10px; height: 12px; margin-top: 15px; margin-bottom: 15px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <div id="work-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--jade), #82c8a0); transition: width 0.1s linear;"></div>
+                </div>
+                
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-outline" style="flex: 0.4; padding: 15px 0;" onclick="viewRecipeTree()" title="查看这件物品的合成路线">
+                        🗺️ 溯源
+                    </button>
+                    <button id="btn-start-work" class="btn btn-gold" style="flex: 1; font-size: 16px; padding: 15px; box-shadow: 0 8px 20px rgba(212,175,55,0.3);" disabled onclick="startWorking()">
+                        准备就绪
+                    </button>
+                </div>
+            </div>
+            
+            <div id="crafting-fx-overlay" style="position: absolute; inset: 0; background: rgba(255,255,255,0.95); z-index: 10; display: none; align-items: center; justify-content: center; flex-direction: column;">
+                <div style="font-size: 80px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">✨</div>
+                <h2 style="color: var(--gold); margin-top: 10px; font-family: var(--font-kai);">天工开物</h2>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+<div id="compendium-modal" class="modal" style="width: 700px; background: #2c2a28; color: white;">
+    <div class="modal-header modal-header-gold" style="border-bottom: 1px solid rgba(212,175,55,0.3);">
+        <h3 style="display:flex; align-items:center; gap:8px; color: var(--gold);">📖 万物鉴 · 九州非遗图谱</h3>
+        <button class="modal-close" style="color: #aaa;" onclick="closeModal('compendium-modal')">×</button>
+    </div>
+    
+    <div class="modal-content" style="padding: 25px; min-height: 400px; overflow-y: auto;">
+        <div style="text-align:center; margin-bottom:20px; color:#aaa; font-size:13px;">
+            历经重重工序打造出最高等级的【传世非遗】方可在此点亮
+        </div>
+        
+        <div id="compendium-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:20px;">
+        </div>
+    </div>
+</div>
+
+<div id="appraise-modal" class="modal">
+    <div class="modal-header modal-header-ink">
+        <h3>👁️ 慧眼鉴宝 · 神秘黑市</h3>
+        <button class="modal-close" onclick="closeModal('appraise-modal')">×</button>
+    </div>
+    <div class="modal-content" style="text-align: center; padding: 30px;">
+        <div style="background: #fafaf8; border: 1.5px dashed var(--color-border); border-radius: 16px; padding: 40px 20px; margin-bottom: 20px; position: relative; overflow: hidden;">
+            <div id="appraise-item-icon" style="font-size: 80px; filter: grayscale(1) contrast(2) brightness(0.5); transition: all 1s ease;">🏺</div>
+            <div id="appraise-item-name" style="font-weight: bold; font-size: 16px; margin-top: 15px; color: var(--ink);">沾满泥土的神秘古物</div>
+        </div>
+        <p style="color: var(--color-text-sub); font-size: 14px; margin-bottom: 20px; line-height: 1.6;">
+            黑市商人：这可是刚从西域遗迹里带出来的宝贝，只需 <strong style="color:var(--amber);">150 灵石</strong>！<br>
+            买定离手，概不退换！可能是传世国宝，也可能是破铜烂铁，敢赌一把吗？
+        </p>
+        <button id="appraise-btn" class="btn btn-gold btn-full" onclick="executeAppraise()" style="font-size:16px; padding:14px;">支付 150 灵石进行洗泥鉴定</button>
+    </div>
+</div>
+
+<div id="message-board-modal" class="modal">
+    <div class="modal-header modal-header-jade">
+        <h3 id="msg-board-title">🎐 祈福神树</h3>
+        <button class="modal-close" onclick="closeModal('message-board-modal')">×</button>
+    </div>
+    <div class="modal-content" style="background: #fafaf8; padding: 20px;">
+        <div id="message-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 3px solid var(--jade);">
+                <div style="font-size: 12px; color: #888; margin-bottom: 4px;">@星渊 (昨天)</div>
+                <div style="font-size: 14px; color: var(--ink);">这里的皮影戏真的太有意思了！希望能在线下也看到。</div>
+                <div style="font-size: 12px; color: var(--cinnabar); text-align: right; margin-top: 5px; cursor: pointer;">❤️ 赞 (12)</div>
+            </div>
+            <div style="background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 3px solid var(--amber);">
+                <div style="font-size: 12px; color: #888; margin-bottom: 4px;">@林深见鹿 (2小时前)</div>
+                <div style="font-size: 14px; color: var(--ink);">谁借我两个沉香木料啊，我的扇子就差一点了！</div>
+                <div style="font-size: 12px; color: var(--cinnabar); text-align: right; margin-top: 5px; cursor: pointer;">❤️ 赞 (3)</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="my-message-input" placeholder="写下你的游历感悟..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; outline: none;">
+            <button class="btn btn-jade" onclick="leaveMessage()">留下印记</button>
+        </div>
+    </div>
+</div>
+
+<div id="item-detail-modal" class="modal" style="width: 450px; background: linear-gradient(180deg, #1e1b18 0%, #12100e 100%); border: 1px solid #4a4031; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+    <div class="modal-header" style="border-bottom: 1px dashed #3a3021;">
+        <h3 style="color: #e8dcc8; font-family: var(--font-kai); letter-spacing: 2px;">万物鉴</h3>
+        <button class="modal-close" style="color: #888;" onclick="closeModal('item-detail-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 25px; text-align: center;">
+        
+        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 20px; background: radial-gradient(circle, rgba(212,175,55,0.15) 0%, transparent 70%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <div id="item-detail-icon" style="font-size: 70px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); animation: float 3s infinite ease-in-out;">📦</div>
+            <div id="item-echo-glow" style="position: absolute; inset: -20px; border-radius: 50%; border: 2px dashed var(--jade); opacity: 0; pointer-events: none; animation: spin 4s linear infinite;"></div>
+        </div>
+
+        <h2 id="item-detail-name" style="color: var(--gold); margin-bottom: 5px; font-size: 20px;">未知物品</h2>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+            <span id="item-detail-type" style="font-size: 11px; color: #aaa; background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 4px;">类别</span>
+            <span id="item-detail-count" style="font-size: 11px; color: var(--jade); background: rgba(126,182,161,0.1); padding: 3px 8px; border-radius: 4px;">拥有: 0</span>
+        </div>
+
+        <div id="item-detail-desc" style="font-size: 13px; color: #bbb; line-height: 1.6; text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #2a251e; margin-bottom: 20px;"></div>
+
+        <div id="item-echo-container" style="display: none; text-align: left; margin-bottom: 20px; background: rgba(126,182,161,0.05); border-left: 3px solid var(--jade); padding: 12px; border-radius: 4px;">
+            <div style="font-size: 12px; color: var(--jade); margin-bottom: 6px; font-weight: bold;">✨ 元神解析 · 记忆回音</div>
+            <div id="item-echo-text" style="font-size: 13px; color: #e8dcc8; font-family: var(--font-kai); font-style: italic; line-height: 1.6; filter: blur(3px); transition: filter 1s ease;">
+                （隐藏在岁月中的低语...）
+            </div>
+        </div>
+
+        <div id="item-action-buttons" style="display: flex; gap: 10px;"></div>
+    </div>
+</div>
+
+
+
+
+
+<script src="data/game-content.js"></script>
+<script src="data/inheritors.js"></script>
+<script src="data/scenes.js"></script>
+
+<script src="scripts/core.js"></script>
+<script src="scripts/auth.js"></script>
+<script src="scripts/scene.js"></script>
+<script src="scripts/workshop.js"></script>
+<script src="scripts/minigames.js"></script>
+<script src="scripts/exploration-engine.js"></script>
+<script src="scripts/quest-engine.js"></script> 
+
+</body>
+</html>
