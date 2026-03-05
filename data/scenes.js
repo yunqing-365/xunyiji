@@ -94,7 +94,7 @@ const sceneConfig = {
           id: 'wyc_npc_laotao', type: 'npc', icon: '🪭', label: '听戏老饕', pos: { x: 1300, y: 1500 }, floatDelay: '1.2s',
           spawnTime: 'noon', // 限定午时出现
           data: {
-            name: '金八爷', role: '资深票友', avatar: '🪭', isAI: false,
+            name: '金八爷', role: '资深戏友', avatar: '🪭', isAI: false,
             dialog: [
               { text: '"这台上的青衣，唱腔圆润，身段婀娜... 只可惜啊，哎，比起当年的王名角儿，还是差了点底蕴。"', 
                 options: ['王名角儿是谁？', '我觉得挺好听的呀'] }
@@ -191,6 +191,7 @@ const sceneConfig = {
         { x: 800,  y: 500,  w: 200,  h: 150 }, // 陈老板的柜台
       ],
     },
+ }，
 
   /* ── 2. 百味巷 ── */
   baiweixiang: {
@@ -216,7 +217,7 @@ const sceneConfig = {
     ],
 
     exploration: {
-      mapWidth: 200, mapHeight: 1500,
+      mapWidth: 3000, mapHeight: 2000,
       layers: [
         { z: 1, parallax: 0.15, bg: '#aa7a40', texture: 'https://www.transparenttextures.com/patterns/wood-pattern.png', opacity: 0.45 },
         { z: 2, parallax: 0.4,  bg: '#8b5a28', texture: 'https://www.transparenttextures.com/patterns/old-paper.png',   opacity: 0.6 },
@@ -280,7 +281,7 @@ const sceneConfig = {
     ],
 
     exploration: {
-      mapWidth: 2600, mapHeight: 1800,
+      mapWidth: 3000, mapHeight: 2000,
       layers: [
         { z: 1, parallax: 0.1,  bg: '#1a3a2a', texture: 'https://www.transparenttextures.com/patterns/subtle-grass.png', opacity: 0.4 },
         { z: 2, parallax: 0.35, bg: '#2d4a38', texture: 'https://www.transparenttextures.com/patterns/grass.png',       opacity: 0.65 },
