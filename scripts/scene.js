@@ -260,22 +260,28 @@ document.addEventListener('DOMContentLoaded', () => {
 // 新增：沉浸式探索跳转入口
 // ============================================================
 window.startExploration = function() {
-    // 获取当前所在的场景 key
-    const key = typeof gameState !== 'undefined' ? gameState.currentScene : null;
+    let key = gameState.currentScene;
     
-    if (!key) {
-        if(typeof showNotification === 'function') showNotification('请先进入一个具体场景！', '⏳');
+    if (!key || typeof sceneConfig === 'undefined') {
+        if(typeof showNotification === 'function') showNotification('请先点击地图上的区域图标！', '⏳');
+        return;
+    }
+    
+    if (sceneConfig[key] === undefined) {
+        key = Object.keys(sceneConfig).find(k => sceneConfig[k].title === gameState.currentScene);
+    }
+    
+    if (!key || !sceneConfig[key]) {
+        if(typeof showNotification === 'function') showNotification('读取场景数据失败！', '⚠️');
         return;
     }
 
-    if (typeof renderExplorationMap === 'function') {
-        // 调用 exploration-engine.js 中的渲染函数
-        renderExplorationMap(key);
+    if (typeof window.renderExplorationMap === 'function') {
+        window.renderExplorationMap(key);
     } else {
-        if(typeof showNotification === 'function') showNotification('正在加载中，请稍候', '⚠️');
+        if(typeof showNotification === 'function') showNotification('探索引擎正在加载中，请稍候...', '❌');
     }
 };
-
 
 
 // ============================================================
@@ -306,19 +312,23 @@ window.startExploration = function() {
 
 // 确保探索引擎内的“退出”按钮无论何时都能生效
 window.exitExploration = function() {
-    // 关闭所有探索场景的弹窗
     document.getElementById('exp-dialogue')?.remove();
     document.getElementById('exp-workshop-panel')?.remove();
-    document.getElementById('exp-hidden-panel')?.remove();
+    document.getElementById('exp-ruin-panel')?.remove();
 
-    // 隐藏所有视图，重新显示场景枢纽
     document.querySelectorAll('.view-container').forEach(v => {
         v.classList.remove('active-view');
-        v.style.display = '';
+        v.style.display = 'none'; // 强制隐藏
     });
     
     const sceneView = document.getElementById('view-scene');
-    if (sceneView) sceneView.classList.add('active-view');
+    if (sceneView) {
+        sceneView.classList.add('active-view');
+        sceneView.style.display = 'block';
+    }
+    
+    const dock = document.getElementById('player-dock');
+    if (dock) dock.classList.remove('hidden');
     
     if(typeof playSound === 'function') playSound('click');
 };

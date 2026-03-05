@@ -35,212 +35,162 @@ const sceneConfig = {
       { icon: '🏪', name: '梨园商铺',   desc: '购买戏曲相关道具材料',     func: 'openShop()' },
     ],
 
-    /* 沉浸式探索地图配置 */
+    /* 沉浸式探索地图配置 (万艺城 3.0 满血升级版) */
     exploration: {
-      /* 地图尺寸（虚拟坐标系，单位px） */
-      mapWidth:  2400,
-      mapHeight: 1600,
+      /* 扩大了地图尺寸，增加探索的纵深感 */
+      mapWidth:  3200,
+      mapHeight: 2000,
 
-      /* 背景图层（远→近，三层视差） */
+      /* 背景图层（远→近，三层视差，质感更深邃） */
       layers: [
-        { z: 1, parallax: 0.15, bg: '#8b6348', texture: 'https://www.transparenttextures.com/patterns/old-paper.png', opacity: 0.5 },
-        { z: 2, parallax: 0.4,  bg: '#7a5030', texture: 'https://www.transparenttextures.com/patterns/wood-pattern.png', opacity: 0.6 },
-        { z: 3, parallax: 1.0,  bg: '#6b4020', texture: 'https://www.transparenttextures.com/patterns/natural-paper.png', opacity: 0.8 },
+        { z: 1, parallax: 0.15, bg: '#5a3d2b', texture: 'https://www.transparenttextures.com/patterns/old-paper.png', opacity: 0.6 },
+        { z: 2, parallax: 0.4,  bg: '#6a4028', texture: 'https://www.transparenttextures.com/patterns/wood-pattern.png', opacity: 0.8 },
+        { z: 3, parallax: 1.0,  bg: '#7a4a30', texture: 'https://www.transparenttextures.com/patterns/natural-paper.png', opacity: 0.9 },
       ],
 
-      /* 玩家出生点 */
-      spawnPoint: { x: 600, y: 800 },
+      /* 玩家出生点：戏院大门 */
+      spawnPoint: { x: 700, y: 900 },
 
-      /* 交互节点列表 */
+      /* 🌟 极度丰富的节点网络：涵盖日夜流转与隐藏奇遇 */
       nodes: [
+        // ── 核心人物 ──
         {
-          id: 'wanyicheng_npc_laoban',
-          type: 'npc',
-          icon: '🧑‍🎤',
-          label: '戏班班主',
-          pos: { x: 900,  y: 500 },
-          floatDelay: '0s',
+          id: 'wyc_npc_laoban', type: 'npc', icon: '🧑‍🎤', label: '梨园陈老板', pos: { x: 1000, y: 650 }, floatDelay: '0s',
           data: {
-            name: '陈老板',
-            role: '梨园戏班班主',
-            avatar: '🧑‍🎤',
-            isAI: false,
+            name: '陈老板', role: '戏班班主', avatar: '🧑‍🎤', isAI: false,
             dialog: [
-              { text: '客官，这是我们梨园班的老规矩——想进场听戏，先得对上一段！你可曾听过昆曲《牡丹亭》？', options: ['听过，太美了！', '第一次来，请介绍', '我想拜师学习'] },
-              { text: '好眼力！昆曲被称为"百戏之祖"，起源于600年前的江南。一腔一调，皆是千年的积淀……', options: ['继续听', '我想看演出', '告辞'] },
-            ],
-          },
-        },
-        {
-          id: 'wanyicheng_npc_hualian',
-          type: 'npc',
-          icon: '🎭',
-          label: '花脸艺人',
-          pos: { x: 1400, y: 700 },
-          floatDelay: '1s',
-          data: {
-            name: '张花脸',
-            role: '脸谱非遗传承人',
-            avatar: '🎭',
-            isAI: true,
-            aiPersonality: '博学的非遗传承人，热爱分享脸谱文化，语气温文儒雅，偶尔引用戏曲台词',
-            bindInheritorId: 5,
-            dialog: [
-              { text: '这位游侠，老夫的脸谱已绘了四十载。每一道色彩都有其含义——红表忠义，黑表刚正，白表奸诈。你想了解哪一色？', options: ['红色脸谱', '黑色脸谱', '白色脸谱', '都想了解'] },
-            ],
-          },
-        },
-        {
-          id: 'wanyicheng_workshop_xiqushop',
-          type: 'workshop',
-          icon: '⛩️',
-          label: '梨园工坊',
-          pos: { x: 500,  y: 350 },
-          floatDelay: '0.5s',
-          data: {
-            bindInheritorId: 5,  /* 张皮影匠师 */
-            name: '梨园工坊',
-            desc: '皮影戏 · 脸谱 · 戏服定制',
-          },
-        },
-        {
-          id: 'wanyicheng_collect_qupu',
-          type: 'collect',
-          icon: '📜',
-          label: '曲谱残页',
-          pos: { x: 1700, y: 400 },
-          floatDelay: '1.5s',
-          data: {
-            itemName: '昆曲曲谱',
-            itemIcon: '📜',
-            itemType: 'collection',
-            count: 1,
-            rarity: 3,
-            desc: '残破的昆曲曲谱，记载着失传的腔调',
-            respawnSecs: 600,
-          },
-        },
-        {
-          id: 'wanyicheng_collect_sifu',
-          type: 'collect',
-          icon: '🧵',
-          label: '丝服碎布',
-          pos: { x: 300,  y: 1100 },
-          floatDelay: '2s',
-          data: {
-            itemName: '戏服丝料',
-            itemIcon: '🧵',
-            itemType: 'material',
-            count: 3,
-            rarity: 2,
-            desc: '戏班丢落的彩色丝料',
-            respawnSecs: 300,
-          },
-        },
-        {
-          id: 'wanyicheng_hidden_guqin',
-          type: 'hidden',
-          icon: '✨',
-          label: '???',
-          pos: { x: 2100, y: 300 },
-          floatDelay: '0.3s',
-          data: {
-            triggerDesc: '你在戏台后场的角落发现了一把落灰的古琴，轻轻拨弦，竟发出余音绕梁的声响……',
-            rewardItem: '古琴琴弦',
-            rewardIcon: '🎸',
-            rewardCount: 1,
-            rarity: 4,
-            questTrigger: 'side_qupu_collect',
-          },
-        },
-        {
-          id: 'wanyicheng_rest_chaguan',
-          type: 'rest',
-          icon: '🍵',
-          label: '茶馆',
-          pos: { x: 1100, y: 1200 },
-          floatDelay: '2.5s',
-          data: {
-            name: '清韵茶馆',
-            desc: '在此休憩可恢复体力，偶尔听到说书人讲九州奇闻',
-            healAmount: 30,
-            randomEvent: true,
-          },
-        },
-        {
-          id: 'wanyicheng_game_toupot',
-          type: 'game',
-          icon: '🎯',
-          label: '投壶摊',
-          pos: { x: 1900, y: 1100 },
-          floatDelay: '1.8s',
-          data: {
-            gameType: 'toupot',
-            name: '投壶游戏',
-            desc: '传统民俗小游戏，赢取灵石奖励',
+              { text: '"客官，今日咱们梨园唱的是《牡丹亭》。不过这好戏啊，得配好茶好酒！你若是能在九州寻得【百年红酒】，我便破例让你去后台看看。"\n<span style="color:#888;font-size:12px;">(提示：使用 🎁赠送 选项，送他一瓶百年红酒试试)</span>', 
+                options: ['我去找找', '给我来张戏票', '改日再来'] }
+            ]
           }
-        }, 
+        },
         {
-          id: 'wyc_ghost_market',
-          type: 'shop',
-          icon: '🏮',
-          label: '子夜鬼市',
-          pos: { x: 1900,  y: 400 },
-          spawnTime: 'night', // 🌟 限定只有子夜 (night) 才会出现
-          floatDelay: '0s'
+          id: 'wyc_npc_hualian', type: 'npc', icon: '🎭', label: '画谱大师', pos: { x: 1800, y: 800 }, floatDelay: '1s',
+          data: {
+            name: '张花脸', role: '脸谱非遗传承人', avatar: '🎭', isAI: true,
+            aiPersonality: '性格古怪的画脸师傅，热爱刁难年轻人，只对真正的艺术品感兴趣。', bindInheritorId: null,
+            dialog: [
+              { text: '"红表忠义，黑表刚直，白表奸诈。游侠儿，你这脸上一片空白，看得我手痒，要不要老夫给你画两笔？"', 
+                options: ['那就有劳大师了', '我还想保留本来面目'] }
+            ]
+          }
         },
 
-        // ... (万艺城原有的节点)
-        // 🌟 新增：大遗忘废墟节点
+        // ── 🌅 晨曦限定节点 (05:00 - 08:00) ──
         {
-          id: 'wyc_ruin_stage',
-          type: 'ruin',
-          icon: '🏚️',
-          label: '破败的古戏台',
-          pos: { x: 500, y: 1000 },
-          floatDelay: '0.2s',
+          id: 'wyc_npc_wusheng', type: 'npc', icon: '🤺', label: '晨练小武生', pos: { x: 400, y: 1300 }, floatDelay: '0.8s',
+          spawnTime: 'dawn', // 限定晨曦出现
           data: {
-            requireItem: '苏绣青皮团扇', // 修复需要的关键灵物
-            hint: '耳畔隐约传来幽咽的戏腔，戏台四周被灰败的迷雾笼罩，似乎已经被世人遗忘了百年。若有一件雅致风流的【苏绣青皮团扇】作为镇物，或许能唤醒当年的戏魂...',
-            
-            // 修复后蜕变成的新节点信息
+            name: '小石头', role: '戏班学徒', avatar: '🤺', isAI: false,
+            dialog: [
+              { text: '"哈！嘿！一日之计在于晨！这位大侠，你看我这套枪法可还行？等我长大了，我要当九州第一武生！"', 
+                options: ['很有精神，继续努力！', '（递给他手帕擦汗）'] }
+            ]
+          }
+        },
+
+        // ── ☀️ 午时限定节点 (11:00 - 17:00) ──
+        {
+          id: 'wyc_npc_laotao', type: 'npc', icon: '🪭', label: '听戏老饕', pos: { x: 1300, y: 1500 }, floatDelay: '1.2s',
+          spawnTime: 'noon', // 限定午时出现
+          data: {
+            name: '金八爷', role: '资深票友', avatar: '🪭', isAI: false,
+            dialog: [
+              { text: '"这台上的青衣，唱腔圆润，身段婀娜... 只可惜啊，哎，比起当年的王名角儿，还是差了点底蕴。"', 
+                options: ['王名角儿是谁？', '我觉得挺好听的呀'] }
+            ]
+          }
+        },
+
+        // ── 🌇 黄昏限定节点 (17:00 - 20:00) ──
+        {
+          id: 'wyc_npc_dageng', type: 'npc', icon: '🏮', label: '打更老伯', pos: { x: 2400, y: 900 }, floatDelay: '0.5s',
+          spawnTime: 'dusk', // 限定黄昏出现
+          data: {
+            name: '老更夫', role: '守夜人', avatar: '🏮', isAI: false,
+            dialog: [
+              { text: '"天干物燥，小心火烛！游侠儿，天快黑了，子夜时分这城东的角落可不太平，据说【鬼市】要开了..."', 
+                options: ['鬼市？我正好去瞧瞧', '多谢提醒，我会小心的'] }
+            ]
+          }
+        },
+
+        // ── 🌌 子夜限定节点 (夜间) ──
+        {
+          id: 'wyc_shop_ghost', type: 'shop', icon: '⛺', label: '神秘鬼市', pos: { x: 2600, y: 500 }, floatDelay: '2s',
+          spawnTime: 'night' // 限定夜间出现
+        },
+
+        // ── 功能建筑与游戏 ──
+        { id: 'wyc_workshop_xiqu', type: 'workshop', icon: '⛩️', label: '皮影工坊', pos: { x: 600, y: 350 }, floatDelay: '0.5s', data: { bindInheritorId: 5, name: '皮影工坊' } },
+        { id: 'wyc_game_toupot', type: 'game', icon: '🎯', label: '投壶戏局', pos: { x: 2000, y: 1400 }, floatDelay: '1.8s', data: { gameType: 'toupot' } },
+        { id: 'wyc_rest_chaguan', type: 'rest', icon: '🍵', label: '清韵茶楼', pos: { x: 1400, y: 1100 }, floatDelay: '2.5s' },
+
+        // ── 物资采集区 ──
+        {
+          id: 'wyc_col_qupu', type: 'collect', icon: '📜', label: '残卷角落', pos: { x: 2300, y: 300 }, floatDelay: '1.5s',
+          data: { itemName: '昆曲曲谱', itemIcon: '📜', itemType: 'collection', count: 1, rarity: 3, desc: '记载着失传腔调的曲谱', respawnSecs: 600 }
+        },
+        {
+          id: 'wyc_col_sifu', type: 'collect', icon: '🧵', label: '后台杂物', pos: { x: 400, y: 900 }, floatDelay: '2s',
+          data: { itemName: '戏服丝料', itemIcon: '🎀', itemType: 'material', count: 3, rarity: 2, desc: '戏班丢落的彩色丝料', respawnSecs: 300 }
+        },
+
+        // ── ✨ 深度隐藏奇遇 (需罗盘或靠近触发) ──
+        {
+          id: 'wyc_hid_guqin', type: 'hidden', icon: '✨', label: '???', pos: { x: 2600, y: 1600 }, floatDelay: '0.3s',
+          data: { triggerDesc: '你在戏台后场的角落发现了一把落灰的古琴，轻轻拨弦，竟发出余音绕梁的声响...', rewardItem: '古琴琴弦', rewardIcon: '🎸', rewardCount: 1, rarity: 4, questTrigger: 'side_qupu_collect' }
+        },
+        {
+          id: 'wyc_hid_yanzhi', type: 'hidden', icon: '✨', label: '???', pos: { x: 900, y: 250 }, floatDelay: '0.9s',
+          data: { triggerDesc: '墙砖的缝隙里塞着一个古旧的脂粉盒，打开后异香扑鼻，里面竟然藏着一枚香丸...', rewardItem: '霸王别姬惊梦香', rewardIcon: '🎭', rewardCount: 1, rarity: 5 }
+        },
+
+        // ── 🏚️ 核心玩法：大遗忘废墟 ──
+        {
+          id: 'wyc_ruin_stage', type: 'ruin', icon: '🏚️', label: '破败的古戏台', pos: { x: 1600, y: 450 }, floatDelay: '0.2s',
+          data: {
+            hint: '耳畔隐约传来幽咽的戏腔，戏台四周被大遗忘的迷雾笼罩。若有一件雅致风流的【苏绣青皮团扇】作为镇物，或许能唤醒当年的戏魂...',
+            requireItem: '苏绣青皮团扇', 
+            aiHint_mojiaziju: '灵识分析：戏台底部的聚音阵法已被侵蚀，需要注入带有江南灵气的雅致之物方可产生共鸣。',
+            requireClues: ['戏服丝料', '昆曲曲谱'],  // 需要玩家在包里集齐这些线索才能去沙盘推演
             restoredType: 'npc',
             restoredIcon: '💃',
             restoredLabel: '全息青衣幻影',
             restoredData: {
-              name: '绝代青衣',
-              role: '万艺城地缚灵',
-              avatar: '💃',
+              name: '绝代青衣', role: '万艺城地缚灵', avatar: '💃',
               dialog: [
-                { text: '"多谢寻遗使点亮此地...百年的迷雾终于散去。从今往后，这戏台便为你一人而开。"', options: ['原来你一直在这里', '请为我唱一曲'] },
-                { text: '"原来姹紫嫣红开遍，似这般都付与断井颓垣... 幸好，你来了。"', options: ['离开'] }
+                { text: '"原来姹紫嫣红开遍，似这般都付与断井颓垣... 幸好，寻遗使，你点亮了这里。"', options: ['原来你一直在这里', '请为我唱一曲'] }
               ]
             }
           }
         }
       ],
-    ecology: {
-            maxDrops: 8,
-            spawnInterval: 8000,
-            dropPool: [
-                { itemName: '五香料', icon: '🌶️', rarity: 1, weight: 60 },
-                { itemName: '戏服丝料', icon: '🧵', rarity: 2, weight: 30 }
-            ],
-            critters: [
-                { type: 'cat', icon: '🐈', count: 3, behavior: 'wander' }
-            ],
-            particleEffect: 'petals' // 飘落的花瓣
-	},
 
-      /* 不可进入区域（碰撞区，虚拟坐标） */
+      /* 🌿 生态系统 (动态掉落与活物) */
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 6000,
+        dropPool: [
+          { itemName: '五香料', icon: '🌶️', rarity: 1, weight: 60 },
+          { itemName: '戏服丝料', icon: '🧵', rarity: 2, weight: 30 },
+          { itemName: '苏绣丝线', icon: '🧶', rarity: 2, weight: 10 }
+        ],
+        critters: [
+          { type: 'cat', icon: '🐈', count: 3, behavior: 'wander' },
+          { type: 'bird', icon: '🕊️', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'petals' // 漫天飘舞的桃花瓣
+      },
+
+      /* 🧱 碰撞体积 (不可跨越的墙壁) */
       blockedZones: [
-        { x: 0,    y: 0,    w: 2400, h: 80  }, /* 上边界 */
-        { x: 0,    y: 1520, w: 2400, h: 80  }, /* 下边界 */
-        { x: 700,  y: 200,  w: 400,  h: 300 }, /* 戏台主台 */
-        { x: 400,  y: 250,  w: 200,  h: 150 }, /* 戏台侧台 */
+        { x: 0,    y: 0,    w: 2800, h: 80  }, 
+        { x: 0,    y: 1720, w: 2800, h: 80  }, 
+        { x: 1300, y: 200,  w: 600,  h: 300 }, // 古戏台底座阻挡
+        { x: 800,  y: 500,  w: 200,  h: 150 }, // 陈老板的柜台
       ],
     },
-  },
 
   /* ── 2. 百味巷 ── */
   baiweixiang: {
@@ -266,7 +216,7 @@ const sceneConfig = {
     ],
 
     exploration: {
-      mapWidth: 2200, mapHeight: 1500,
+      mapWidth: 200, mapHeight: 1500,
       layers: [
         { z: 1, parallax: 0.15, bg: '#aa7a40', texture: 'https://www.transparenttextures.com/patterns/wood-pattern.png', opacity: 0.45 },
         { z: 2, parallax: 0.4,  bg: '#8b5a28', texture: 'https://www.transparenttextures.com/patterns/old-paper.png',   opacity: 0.6 },
