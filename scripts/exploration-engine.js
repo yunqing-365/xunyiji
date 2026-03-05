@@ -36,22 +36,42 @@ window.renderExplorationMap = function(sceneKey) {
     } else {
         _initExplorationState(sceneKey, config);
     }
+};
 
-   _buildMapLayers(config);
+function _initExplorationState(sceneKey, config) {
+    _stopLoop();
+    _exp.sceneKey = sceneKey; _exp.config = config;
+    _exp.isPaused = false; _exp.target = null; _exp.nearbyNode = null;
+
+    WORLD_W = config.exploration.mapWidth || 2400;
+    WORLD_H = config.exploration.mapHeight || 1600;
+    _exp.player = config.exploration.spawnPoint ? { x: config.exploration.spawnPoint.x, y: config.exploration.spawnPoint.y } : { x: WORLD_W / 2, y: WORLD_H / 2 };
+
+    _ensureExplorationView();
+
+    document.querySelectorAll('.view-container').forEach(v => { v.classList.remove('active-view'); v.style.display = ''; });
+    document.getElementById(EXP_VIEW_ID).classList.add('active-view');
+    const dock = document.getElementById('player-dock');
+    if(dock) dock.classList.add('hidden');
+
+    _buildMapLayers(config);
     _buildNodes(config.exploration.nodes || []);
     _buildColliders(config.exploration.blockedZones || []);
     _buildMinimap(config);
     _updateHUD(config);
     _renderPlayer();
 
-    // 👇 新增：初始化生态与环境特效
+    // 初始化生态与环境特效
     _initEcology(config);
     _spawnEnvironmentParticles(config);
 
     _updateCamera();
     _applyCamera();
     _startLoop();
-};
+
+    if(typeof playSound === 'function') playSound('exploration_enter');
+    if(typeof showNotification === 'function') showNotification(`进入【${config.title}】探索 — 点击移动，靠近节点按 F 交互`, '🗺️', 4500);
+}
 
 function _ensureExplorationView() {
     let expView = document.getElementById(EXP_VIEW_ID);

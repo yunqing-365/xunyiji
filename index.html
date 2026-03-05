@@ -471,7 +471,44 @@ onclick="enterScene('senzhidiyu')">
     </div>
 </div>
 
-    </main>
+
+</div><div id="view-deduction" class="view-container system-layout">
+    <div class="section-title">
+        <div>🕵️ 异闻沙盘 <span class="subtitle" style="margin-left:10px; color:#888;">推演因果，唤醒九州遗卷</span></div>
+    </div>
+    
+    <div class="deduction-layout">
+        <div style="background: rgba(0,0,0,0.4); border-radius: 16px; padding: 30px; border: 1px solid #333; margin-bottom: 30px;">
+            <div class="deduction-altar">
+                <div class="deduction-slot" id="deduction-slot-1" onclick="clearDeductionSlot(1)" title="点击移除">
+                    <div style="font-size:30px; opacity:0.3;">➕</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">线索一</div>
+                </div>
+                <div style="font-size:30px; color:var(--gold); opacity:0.5; z-index:10;">+</div>
+                <div class="deduction-slot" id="deduction-slot-2" onclick="clearDeductionSlot(2)" title="点击移除">
+                    <div style="font-size:30px; opacity:0.3;">➕</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">线索二</div>
+                </div>
+            </div>
+
+            <div id="deduction-ai-hint" style="text-align: center; margin: 30px 0; font-size: 14px; min-height: 40px;">
+                <span style="color:var(--jade); font-weight:bold;">🤖 灵识寄语：</span>请在下方行囊中选择两件灵物放入阵眼。
+            </div>
+
+            <button id="btn-execute-deduction" class="btn btn-gold btn-full" style="font-size: 16px; padding: 15px; opacity: 0.5;" disabled onclick="executeDeduction()">
+                注入灵力 · 开启推演
+            </button>
+        </div>
+
+        <div>
+            <h4 style="color: var(--gold); margin-bottom: 15px; border-bottom: 1px dashed #333; padding-bottom: 10px;">🎒 行囊可用灵物</h4>
+            <div id="deduction-inventory" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px;">
+                </div>
+        </div>
+    </div>
+</div>
+
+</main>
 
     <nav id="player-dock" class="dock hidden">
         

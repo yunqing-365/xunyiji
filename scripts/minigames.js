@@ -391,224 +391,170 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 
 // ============================================================
 // 六、异闻录 · 推演沙盘系统 (自由探索解谜引擎)
 // ============================================================
 
-/**
- * 优化后的异闻沙盘引擎
- */
+let currentDeductionSlots = [null, null];
+
 const DEDUCTION_ENGINE = {
-    // 核心因果配方：不再是死板的匹配，而是包含“推演逻辑”
+    // 推演配方与因果逻辑
     recipes: [
         {
             materials: ['高岭陶土', '百年红酒'],
-            result: '宋代冰裂纹残片',
+            result: '宋代冰裂纹残片', icon: '🏺',
             logic: '红酒的酸性与寒性意外促成了陶土在高温后的极速收缩...',
             story: '你发现西域红酒中的特殊成分能模拟“冰裂”所需的釉面张力！',
             discovery: '获得【冰裂纹】核心配方，可前往百作镇复苏“熄灭的龙窑”。'
         },
         {
             materials: ['戏服丝料', '云锦布料'],
-            result: '乱针双面绣手记',
+            result: '乱针双面绣手记', icon: '📕',
             logic: '两代织物的经纬线在灵力驱动下产生了奇妙的重叠...',
             story: '丝线交织间，一位民国绣娘的身影若隐若现，她在向你演示乱针之法。',
             discovery: '获得【乱针绣】绝学，可前往万艺城唤醒“破败的古戏台”。'
+        },
+        {
+            materials: ['南海珍珠', '彩色贝壳'],
+            result: '避水珠', icon: '🔮',
+            logic: '珍珠的精华与贝壳的纹理交织，在灵力催化下化作一颗辟水灵珠...',
+            story: '盈莹之光散发着大海的威压，这是连海神都会觊觎的宝物。',
+            discovery: '获得【避水珠】，可前往沧溟海域进入深渊海沟探索。'
         }
     ],
 
-    // 渲染主界面
+    // 渲染下方物品栏
     render() {
-        const container = document.getElementById('deduction-inventory');
-        if (!container) return;
-        
-        // 渲染极具质感的物品选择区
-        let html = '';
-        for (const [name, count] of Object.entries(gameState.inventory)) {
-            if (count <= 0) continue;
-            const data = itemDatabase[name] || { icon: '📦' };
-            if (!['material', 'collection', 'prop'].includes(data.type)) continue;
+        const listEl = document.getElementById('deduction-inventory');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        let hasItems = false;
 
-            html += `
-                <div class="deduction-item-card" onclick="DEDUCTION_ENGINE.select('${name}')">
-                    <div class="item-icon">${data.icon}</div>
-                    <div class="item-name">${name}</div>
-                    <div class="item-count">持存: ${count}</div>
-                    ${data.echo ? '<div class="echo-indicator">✦</div>' : ''}
-                </div>`;
+        for (const [itemName, count] of Object.entries(gameState.inventory)) {
+            if (count > 0) {
+                const itemData = (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) ? itemDatabase[itemName] : null;
+                // 只有材料、道具、收藏品可以放入沙盘
+                if (itemData && ['material', 'prop', 'collection'].includes(itemData.type)) {
+                    hasItems = true;
+                    listEl.innerHTML += `
+                        <div class="deduction-item-card" style="background:#fafaf8; border:1px solid #eee; border-radius:8px; padding:10px; text-align:center; cursor:pointer; transition:0.2s;" 
+                             onclick="DEDUCTION_ENGINE.select('${itemName}', '${itemData.icon}')"
+                             onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='#eee'">
+                            <div style="font-size:28px; margin-bottom:5px;">${itemData.icon}</div>
+                            <div style="font-size:11px; font-weight:bold; color:var(--ink);">${itemName}</div>
+                            <div style="font-size:10px; color:#888;">拥有: ${count}</div>
+                            ${itemData.echo ? '<div style="color:var(--purple); font-size:11px; margin-top:4px;">✦ 蕴含因果</div>' : ''}
+                        </div>`;
+                }
+            }
         }
-        container.innerHTML = html || '<div class="empty-hint">行囊中尚无带有“因果”的灵物</div>';
-        this.updateUI();
+        if (!hasItems) listEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#aaa; margin-top:50px;">行囊空空。<br>去九州搜集些可能含有因果的灵物吧！</div>';
     },
 
-    // 选中灵物放入阵眼
-    select(name) {
-        const idx = currentDeductionSlots.findIndex(s => s === null);
-        if (idx === -1) {
-            showNotification('阵眼已满，请先移除现有灵物', '⚠️');
+    // 选中物品上阵眼
+    select(itemName, icon) {
+        if(typeof playSound === 'function') playSound('click');
+        let slotIndex = currentDeductionSlots[0] === null ? 0 : (currentDeductionSlots[1] === null ? 1 : -1);
+        
+        if (slotIndex === -1) {
+            showNotification('阵眼已满，请先点击上方阵眼移除灵物', '⚠️');
             return;
         }
-        currentDeductionSlots[idx] = name;
-        playSound('click');
+        
+        currentDeductionSlots[slotIndex] = itemName;
+        const slotEl = document.getElementById(`deduction-slot-${slotIndex + 1}`);
+        slotEl.innerHTML = `<div style="font-size:38px;">${icon}</div><div style="font-size:11px; font-weight:bold; color:var(--gold); margin-top:8px;">${itemName}</div>`;
+        slotEl.classList.add('active'); // 触发外发光 CSS
+        
+        this.checkState();
         this.render();
     },
 
-    // 执行因果推演
+    // 从阵眼移除物品
+    clearSlot(slotIndex) {
+        currentDeductionSlots[slotIndex - 1] = null;
+        const slotEl = document.getElementById(`deduction-slot-${slotIndex}`);
+        slotEl.innerHTML = `<div style="font-size:30px; opacity:0.3;">➕</div><div style="font-size:12px; color:#888; margin-top:5px;">线索 ${slotIndex === 1 ? '一' : '二'}</div>`;
+        slotEl.classList.remove('active');
+        this.checkState();
+    },
+
+    // 检查按钮状态
+    checkState() {
+        const btn = document.getElementById('btn-execute-deduction');
+        const hint = document.getElementById('deduction-ai-hint');
+        if (currentDeductionSlots[0] && currentDeductionSlots[1]) {
+            btn.disabled = false; btn.style.opacity = '1';
+            hint.innerHTML = '<span style="color:var(--amber); font-weight:bold;">🤖 灵识推演中：</span>这两件物品似乎存在某种因果...可以尝试注入灵力推演！';
+        } else {
+            btn.disabled = true; btn.style.opacity = '0.5';
+            hint.innerHTML = '<span style="color:var(--jade); font-weight:bold;">🤖 灵识寄语：</span>请放入两件灵物。';
+        }
+    },
+
+    // 执行推演
     async execute() {
         const [a, b] = currentDeductionSlots;
         if (!a || !b) return;
+        
+        if (!gameState.inventory[a] || !gameState.inventory[b]) {
+            showNotification('行囊物品不足', '❌');
+            return;
+        }
 
         const btn = document.getElementById('btn-execute-deduction');
+        const hint = document.getElementById('deduction-ai-hint');
+        btn.innerHTML = '💫 阵法运转中...'; 
         btn.disabled = true;
-        btn.innerHTML = '<span class="anim-spin">🌀</span> 正在溯源因果...';
-
-        // 播放震动与光效
-        document.getElementById('view-deduction').classList.add('deducing');
+        if(typeof playSound === 'function') playSound('magic');
         
-        await new Promise(r => setTimeout(r, 2000)); // 模拟计算耗时
+        document.getElementById('view-deduction').classList.add('deducing'); // 触发连线发光
 
-        const recipe = this.recipes.find(r => 
-            (r.materials.includes(a) && r.materials.includes(b))
-        );
-
-        if (recipe) {
-            // 扣除材料
-            gameState.inventory[a]--;
-            gameState.inventory[b]--;
-            addItem(recipe.result, 1);
+        // 模拟推演耗时
+        setTimeout(() => {
+            document.getElementById('view-deduction').classList.remove('deducing');
+            btn.innerText = '注入灵力 · 开启推演';
             
-            this.showSuccess(recipe);
-            if (typeof unlockAchievement === 'function') {
-                unlockAchievement('deduce_first', '因果探知者', '在沙盘中成功推演一段失传因果', 200, '🔮');
-            }
-        } else {
-            this.showFailure();
-        }
+            // 匹配配方，无论先后顺序
+            const recipe = this.recipes.find(r => r.materials.includes(a) && r.materials.includes(b));
 
-        document.getElementById('view-deduction').classList.remove('deducing');
-        currentDeductionSlots = [null, null];
-        btn.disabled = false;
-        btn.innerText = '注入灵力 · 开启推演';
-        this.render();
-    },
-
-    showSuccess(recipe) {
-        const hint = document.getElementById('deduction-ai-hint');
-        hint.innerHTML = `
-            <div class="success-box anim-fade-up">
-                <div class="success-title">✨ 推演大成功：${recipe.result}</div>
-                <p class="success-logic">${recipe.logic}</p>
-                <div class="success-discovery">🗺️ 秘境线索：${recipe.discovery}</div>
-            </div>`;
-        showNotification(`获得稀世绝卷：【${recipe.result}】`, '📜', 5000);
-        playSound('achievement');
-    },
-
-    showFailure() {
-        const hint = document.getElementById('deduction-ai-hint');
-        hint.innerHTML = `<p class="fail-text">❌ 因果不通。这两件灵物之间似乎并无冥冥中的联系，再试着阅读它们的“记忆回音”吧。</p>`;
-        showNotification('推演失败，灵力反噬', '💨');
-    }
-};
-
-let currentDeductionSlots = [null, null];
-
-window.renderDeductionBoard = function() {
-    const listEl = document.getElementById('deduction-inventory');
-    if (!listEl) return;
-    listEl.innerHTML = '';
-    let hasItems = false;
-
-    // 读取行囊
-    for (const [itemName, count] of Object.entries(gameState.inventory)) {
-        if (count > 0) {
-            const itemData = (typeof itemDatabase !== 'undefined' && itemDatabase[itemName]) ? itemDatabase[itemName] : null;
-            if (itemData && ['material', 'prop', 'collection'].includes(itemData.type)) {
-                hasItems = true;
-                listEl.innerHTML += `
-                    <div style="background:#fafaf8; border:1px solid #eee; border-radius:8px; padding:10px; text-align:center; cursor:pointer; transition:0.2s;" 
-                         onclick="addToDeductionSlot('${itemName}', '${itemData.icon}')"
-                         onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='#eee'">
-                        <div style="font-size:28px; margin-bottom:5px;">${itemData.icon}</div>
-                        <div style="font-size:11px; font-weight:bold; color:var(--ink);">${itemName}</div>
-                        <div style="font-size:10px; color:#888;">拥有: ${count}</div>
+            if (recipe) {
+                gameState.inventory[a]--; gameState.inventory[b]--;
+                if (typeof addItem === 'function') addItem(recipe.result, 1);
+                
+                hint.innerHTML = `
+                    <div class="success-box anim-fade-up">
+                        <div class="success-title">✨ 推演大成功：${recipe.result}</div>
+                        <p style="color:#e8dcc8; font-size:13px; line-height:1.6; margin-bottom:8px;">${recipe.logic}</p>
+                        <div class="success-discovery">🗺️ 秘境线索：${recipe.discovery}</div>
                     </div>`;
+                showNotification(`绝密线索现世！获得【${recipe.result}】`, recipe.icon, 6000);
+                if (typeof unlockAchievement === 'function') {
+                    unlockAchievement('deduce_first', '因果探知者', '在沙盘中成功推演一段失传因果', 200, '🔮');
+                }
+            } else {
+                hint.innerHTML = `<span style="color:var(--cinnabar); font-weight:bold;">🤖 阵法反噬：</span>毫无反应。九州万物相生相克，这两样东西显然不搭，换个思路吧。`;
+                showNotification('推演失败，线索不匹配', '💨');
             }
-        }
-    }
-    if (!hasItems) listEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#aaa; margin-top:50px;">行囊空空。<br>去九州搜集些可能含有因果的灵物吧！</div>';
-};
-
-window.addToDeductionSlot = function(itemName, icon) {
-    if(typeof playSound === 'function') playSound('click');
-    let slotIndex = currentDeductionSlots[0] === null ? 1 : (currentDeductionSlots[1] === null ? 2 : 0);
-    if (slotIndex === 0) return showNotification('阵眼已满，请先点击移除', '⚠️');
-    
-    currentDeductionSlots[slotIndex - 1] = itemName;
-    const slotEl = document.getElementById(`deduction-slot-${slotIndex}`);
-    slotEl.innerHTML = `<div style="font-size:38px;">${icon}</div><div style="font-size:11px; font-weight:bold; color:var(--gold); margin-top:8px;">${itemName}</div>`;
-    slotEl.style.borderColor = 'var(--gold)'; slotEl.style.background = 'rgba(212,175,55,0.1)';
-    _checkDeductionState();
-};
-
-window.clearDeductionSlot = function(slotIndex) {
-    currentDeductionSlots[slotIndex - 1] = null;
-    const slotEl = document.getElementById(`deduction-slot-${slotIndex}`);
-    slotEl.innerHTML = `<div style="font-size:30px; opacity:0.3;">➕</div><div style="font-size:12px; color:#888; margin-top:5px;">线索 ${slotIndex === 1 ? '一' : '二'}</div>`;
-    slotEl.style.borderColor = 'rgba(212,175,55,0.5)'; slotEl.style.background = 'rgba(255,255,255,0.05)';
-    _checkDeductionState();
-};
-
-function _checkDeductionState() {
-    const btn = document.getElementById('btn-execute-deduction');
-    const hint = document.getElementById('deduction-ai-hint');
-    if (currentDeductionSlots[0] && currentDeductionSlots[1]) {
-        btn.disabled = false; btn.style.opacity = '1';
-        hint.innerHTML = '<span style="color:var(--amber); font-weight:bold;">🤖 元神推演中：</span>这两件物品似乎存在某种因果...可以尝试注入灵力推演！';
-    } else {
-        btn.disabled = true; btn.style.opacity = '0.5';
-        hint.innerHTML = '<span style="color:var(--jade); font-weight:bold;">🤖 元神寄语：</span>请放入两件灵物。';
-    }
-}
-
-window.executeDeduction = function() {
-    const i1 = currentDeductionSlots[0], i2 = currentDeductionSlots[1];
-    const btn = document.getElementById('btn-execute-deduction');
-    const hint = document.getElementById('deduction-ai-hint');
-    
-    if (!gameState.inventory[i1] || !gameState.inventory[i2]) return showNotification('行囊物品不足', '❌');
-    
-    btn.innerText = '💫 阵法运转中...'; btn.disabled = true;
-    if(typeof playSound === 'function') playSound('magic');
-    document.getElementById('view-deduction').style.animation = 'shake 0.5s ease';
-    setTimeout(() => document.getElementById('view-deduction').style.animation = '', 500);
-
-    setTimeout(() => {
-        btn.innerText = '注入灵力 · 开启推演';
-        const recipe = DEDUCTION_RECIPES.find(r => (r.clue1 === i1 && r.clue2 === i2) || (r.clue1 === i2 && r.clue2 === i1));
-
-        if (recipe) {
-            gameState.inventory[i1]--; gameState.inventory[i2]--;
-            if (typeof addItem === 'function') addItem(recipe.resultName, 1);
             
-            hint.innerHTML = `<div style="color:var(--gold); font-size:15px; font-weight:bold; margin-bottom:5px;">✨ 推演大成功！</div>
-                              <div style="color:#e8dcc8;">${recipe.successMsg}</div>`;
-            showNotification(`绝密线索现世！获得【${recipe.resultName}】`, recipe.resultIcon, 5000);
-        } else {
-            hint.innerHTML = `<span style="color:var(--cinnabar); font-weight:bold;">🤖 阵法反噬：</span>毫无反应。九州万物相生相克，这两样东西显然不搭，换个思路吧。`;
-            showNotification('推演失败，线索不匹配', '💨');
-        }
-        
-        clearDeductionSlot(1); clearDeductionSlot(2); renderDeductionBoard();
-    }, 1500);
+            this.clearSlot(1); 
+            this.clearSlot(2); 
+            this.render(); // 刷新物品栏数量
+        }, 1500);
+    }
 };
 
-// 专门为厚重历史准备的阅读回调
+// 将引擎内部的方法暴露给全局供 HTML 调用
+window.renderDeductionBoard = () => DEDUCTION_ENGINE.render();
+window.executeDeduction = () => DEDUCTION_ENGINE.execute();
+window.clearDeductionSlot = (idx) => DEDUCTION_ENGINE.clearSlot(idx);
+
+// 专门为厚重历史准备的阅读回调 (配合史诗级道具使用)
 window.readEpicLore = function(itemName) {
     const itemData = itemDatabase[itemName];
     if (itemData && itemData.loreText) {
         closeModal('item-detail-modal');
-        // 弹出极具仪式感的历史阅读框
         openStoryModal('📖 千古遗音', itemName, itemData.loreText);
         showNotification('获得了一段沉重的九州往事，此物可赠予相关的非遗匠师！', '📜', 5000);
     }

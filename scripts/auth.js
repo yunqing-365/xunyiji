@@ -187,6 +187,9 @@ function _initPlayerSession(username) {
     //启动任务引擎
     if (typeof initQuestEngine === 'function') initQuestEngine();
 
+    // 👇 新增这一行：启动世界时间引擎！
+    if (typeof WorldTimeEngine !== 'undefined') WorldTimeEngine.start();
+
     // 欢迎通知
     setTimeout(() => {
         if(typeof showNotification === 'function') showNotification(`欢迎回来，${username}！开始你的九州游历吧~`, '🎉');

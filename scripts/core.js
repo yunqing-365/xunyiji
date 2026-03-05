@@ -270,10 +270,6 @@ function addItem(itemName, qty = 1) {
     if (typeof SaveManager !== 'undefined') SaveManager.save();
 }
 
-// 订阅物品变动事件，自动刷新背包UI，不用再到处手动调
-GameEvent.on('INVENTORY_CHANGED', () => {
-    if (typeof updateInventory === 'function') updateInventory();
-});
 
 /**
  * 从背包扣除灵石，若不足返回 false
@@ -456,6 +452,12 @@ const GameEvent = {
         }
     }
 };
+
+// 订阅物品变动事件，自动刷新背包UI，不用再到处手动调
+GameEvent.on('INVENTORY_CHANGED', () => {
+    if (typeof updateInventory === 'function') updateInventory();
+});
+
 
 // ============================================================
 // 核心模块 3：通用条件判定引擎 (Condition Engine)
@@ -3066,3 +3068,8 @@ const AudioManager = {
         this.bgm.play().catch(e => console.log("等待用户交互以播放BGM"));
     }
 };
+
+// 监听场景切换事件，自动切换背景音乐
+GameEvent.on('ENTER_SCENE', (sceneKey) => {
+    AudioManager.playBGM(sceneKey);
+});
