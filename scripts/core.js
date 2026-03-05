@@ -2183,7 +2183,16 @@ const WorldTimeEngine = {
     },
 
     updateUI() {
-        const state = this.states[gameState.worldState];
+        // 🛡️ 强力防错：如果本地存档里的时间数据错乱，强制重置为 1 (午时)
+        let ws = parseInt(gameState.worldState);
+        if (isNaN(ws) || ws < 0 || ws > 3) {
+            ws = 1;
+            gameState.worldState = 1;
+        }
+        
+        const state = this.states[ws];
+        if (!state) return; // 终极保险
+
         const iconEl = document.getElementById('world-icon');
         const timeEl = document.getElementById('world-time');
         const buffEl = document.getElementById('world-buff');
@@ -2194,6 +2203,12 @@ const WorldTimeEngine = {
             timeEl.style.color = state.color;
             buffEl.innerText = state.buff;
         }
+
+        // 同步探索地图的光影
+        if (typeof updateWorldEcology === 'function') {
+            updateWorldEcology(ws, state.id);
+        }
+    }
 
         // 同步探索地图的光影
         if (typeof updateWorldEcology === 'function') {
