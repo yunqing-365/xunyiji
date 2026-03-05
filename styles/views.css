@@ -2182,6 +2182,10 @@
 /* 异闻沙盘深度优化 */
 #view-deduction {
     background: radial-gradient(circle at center, #1a1816 0%, #050505 100%);
+}
+
+/* 🌟 核心修复：只有当沙盘被真正激活时，才允许它展开，防止它挤走探索引擎 */
+#view-deduction.active-view {
     display: flex;
     flex-direction: column;
 }
@@ -2398,3 +2402,204 @@
 .eco-critter {
     animation: float 2s ease-in-out infinite;
 }
+
+/* ======================================================
+   🪬 化身纪 3.0 专属高级样式
+   ====================================================== */
+.profile-layout-v2 {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+/* 顶部灵力值角标 */
+.power-score-badge {
+    background: linear-gradient(135deg, #2c2a28, #1a1816);
+    border: 1px solid var(--gold);
+    padding: 8px 20px;
+    border-radius: 30px;
+    display: flex;
+    align-items: baseline;
+    box-shadow: inset 0 0 15px rgba(212,175,55,0.1);
+}
+
+/* ── 左侧：化身全息展台 ── */
+.avatar-hero-panel {
+    background: radial-gradient(circle at 50% 60%, #2a3a35 0%, #111a15 100%);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(126, 182, 161, 0.3);
+    height: 600px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 0 80px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+/* 底部全息八卦阵/莲花座 */
+.avatar-pedestal {
+    position: absolute;
+    bottom: 15%;
+    width: 300px;
+    height: 300px;
+    transform: rotateX(70deg);
+    transform-style: preserve-3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pedestal-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px dashed rgba(126, 182, 161, 0.5);
+    animation: spin linear infinite;
+}
+.pedestal-ring.r1 { width: 100%; height: 100%; animation-duration: 20s; border-style: solid; border-color: rgba(126,182,161,0.2); box-shadow: 0 0 30px rgba(126,182,161,0.3); }
+.pedestal-ring.r2 { width: 70%; height: 70%; animation-duration: 15s; animation-direction: reverse; border-color: var(--gold); opacity: 0.5; }
+.pedestal-ring.r3 { width: 40%; height: 40%; animation-duration: 10s; background: radial-gradient(circle, rgba(126,182,161,0.4), transparent); box-shadow: 0 0 50px var(--jade); }
+
+.avatar-showcase-main {
+    font-size: 160px;
+    z-index: 10;
+    animation: float 4s ease-in-out infinite;
+    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.6));
+    margin-bottom: 40px;
+}
+
+/* 名号发光展示 */
+.avatar-title-glow {
+    position: absolute;
+    bottom: 30px;
+    font-size: 22px;
+    font-family: var(--font-kai);
+    font-weight: bold;
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px var(--gold), 0 0 30px var(--amber);
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.6), transparent);
+    padding: 10px 40px;
+}
+
+/* 环绕装备槽 */
+.equip-slots-v2 {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+.slot-wrapper {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: auto;
+}
+.slot-label {
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.slot-btn-v2 {
+    width: 56px;
+    height: 56px;
+    background: rgba(20,20,20,0.8);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(4px);
+    color: #555;
+}
+.slot-btn-v2:hover {
+    border-color: var(--gold);
+    transform: scale(1.15);
+    box-shadow: 0 0 20px rgba(212,175,55,0.4);
+}
+.slot-btn-v2.equipped {
+    background: radial-gradient(circle, rgba(126,182,161,0.2), rgba(0,0,0,0.8));
+    border-color: var(--jade);
+    box-shadow: 0 0 15px rgba(126,182,161,0.3);
+}
+
+/* ── 右侧：数据面板 ── */
+.profile-info-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-content: start;
+}
+
+.profile-card-v2 {
+    background: rgba(30, 28, 26, 0.9);
+    border: 1px solid #3a3530;
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    backdrop-filter: blur(10px);
+}
+
+.card-v2-header {
+    font-size: 15px;
+    color: var(--scroll);
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+/* 四象雷达卡片 */
+.stat-pillar {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.stat-pillar-bg {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(126,182,161,0.2), transparent);
+    z-index: 0;
+    transition: height 1s ease;
+}
+.stat-pillar-val {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-kai);
+}
+.stat-pillar-name {
+    font-size: 11px;
+    color: #aaa;
+    position: relative;
+    z-index: 1;
+    margin-top: 4px;
+}
+
+/* 社交列表 V2 */
+.social-list-v2 {
+    list-style: none;
+    margin-top: 10px;
+}
+.social-list-v2 li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed #333;
+}
+.social-list-v2 li:last-child { border-bottom: none; }

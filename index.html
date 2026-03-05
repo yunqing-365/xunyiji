@@ -402,112 +402,114 @@ onclick="enterScene('senzhidiyu')">
 
         <div id="view-profile" class="view-container system-layout">
             <div class="section-title">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span>🪬 化身纪 <span class="subtitle" style="margin-left:10px; font-size:14px; color:#888;">命途羁绊与灵物穿戴</span></span>
-                    <button class="btn btn-sm btn-outline" onclick="meditatePersona()">🧘 冥想凝神 (刷新性情)</button>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <div class="power-score-badge">
+                            <span style="font-size: 12px; color: rgba(255,255,255,0.7);">综合灵力</span>
+                            <span id="avatar-power-score" style="font-size: 18px; font-weight: bold; color: var(--gold); margin-left: 6px; text-shadow: 0 0 10px rgba(212,175,55,0.5);">100</span>
+                        </div>
+                        <button class="btn btn-gold" onclick="meditatePersona()" style="box-shadow: 0 0 15px rgba(212,175,55,0.3);">🧘 灵台凝神</button>
+                    </div>
                 </div>
             </div>
             
-            <!-- 找到并替换这整个 <div class="profile-layout"> 块 -->
-<div class="profile-layout">
-    <div class="avatar-showcase" id="dynamic-avatar-box">
-        <div class="avatar-showcase-main" id="main-avatar-emoji">🧑</div>
-        <div id="equipped-visuals" style="position:absolute;inset:0;pointer-events:none;z-index:5;"></div>
-        <div class="equip-slots">
-            <button class="slot-btn" style="top:20%;left:15%;" onclick="openEquipModal('首')">首</button>
-            <button class="slot-btn" style="top:45%;left:10%;" onclick="openEquipModal('佩')">佩</button>
-            <button class="slot-btn" style="top:70%;left:15%;" onclick="openEquipModal('袍')">袍</button>
-            <button class="slot-btn" style="top:85%;left:40%;" onclick="openEquipModal('履')">履</button>
-            <button class="slot-btn" style="top:45%;right:10%;" onclick="openEquipModal('持')">持</button>
-        </div>
-        <!-- 新增：化身名号显示 -->
-        <div id="avatar-title-display" style="position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:var(--gold);font-family:var(--font-kai);letter-spacing:2px;opacity:0.9;"></div>
-    </div>
-
-    <div class="profile-details">
-        <!-- 新增：当前装备效果汇总 -->
-        <div class="profile-card" id="equip-buff-card" style="display:none;">
-            <div class="profile-card-title">⚡ 灵物加持 (当前效果)</div>
-            <div id="equip-buff-list" style="display:flex;flex-direction:column;gap:6px;font-size:13px;"></div>
-        </div>
-
-        <div class="profile-card">
-            <div class="profile-card-title" style="display:flex;justify-content:space-between;align-items:center;">
-                <span>📖 灵台性情 (属性)</span>
-                <button class="btn btn-sm btn-outline" onclick="meditatePersona()" style="font-size:11px;">🧘 凝神</button>
-            </div>
-            <div id="dynamic-persona-tags" style="display:flex;flex-wrap:wrap;gap:8px;min-height:36px;">
-                <span class="tag-pill" style="background:#eee;color:#666;">暂未冥想，真我未显</span>
-            </div>
-        </div>
-
-        <div class="profile-card">
-            <div class="profile-card-title" style="display:flex;justify-content:space-between;width:100%;">
-                <span>🏆 九州历练 (成就图鉴)</span>
-                <span style="font-size:13px;color:var(--jade);font-weight:normal;" id="achievement-progress">进度: 0/4</span>
-            </div>
-            <div class="achievement-grid" id="dynamic-achievement-grid"></div>
-        </div>
-
-        <div class="profile-card">
-            <div class="profile-card-title">🤝 虚境良缘 (社交)</div>
-            <ul class="social-list">
-                <li class="social-item">
-                    <div class="social-info">
-                        <div class="avatar avatar-sm">🧑‍🎤</div>
-                        <div><div class="social-name">星渊 <span class="social-rel">(匠心同好)</span></div></div>
+            <div class="profile-layout-v2">
+                <div class="avatar-hero-panel">
+                    <div class="avatar-pedestal">
+                        <div class="pedestal-ring r1"></div>
+                        <div class="pedestal-ring r2"></div>
+                        <div class="pedestal-ring r3"></div>
                     </div>
-                    <button class="btn btn-sm btn-outline" onclick="openMessageBoard('致 星渊 的飞鸽传书')">飞鸽传书</button>
-                </li>
-                <li class="social-item">
-                    <div class="social-info">
-                        <div class="avatar avatar-sm">🪡</div>
-                        <div><div class="social-name">王雪萍匠师 <span class="social-rel">(苏绣传承人)</span></div></div>
+                    
+                    <div class="avatar-showcase-main" id="main-avatar-emoji">🧑</div>
+                    <div id="equipped-visuals" style="position:absolute;inset:0;pointer-events:none;z-index:5;"></div>
+                    
+                    <div class="equip-slots-v2">
+                        <div class="slot-wrapper" style="top: 15%; left: 10%;">
+                            <span class="slot-label">首</span>
+                            <button class="slot-btn-v2" onclick="openEquipModal('首')" id="slot-btn-首">🪹</button>
+                        </div>
+                        <div class="slot-wrapper" style="top: 45%; left: 5%;">
+                            <span class="slot-label">佩</span>
+                            <button class="slot-btn-v2" onclick="openEquipModal('佩')" id="slot-btn-佩">🪹</button>
+                        </div>
+                        <div class="slot-wrapper" style="top: 75%; left: 15%;">
+                            <span class="slot-label">袍</span>
+                            <button class="slot-btn-v2" onclick="openEquipModal('袍')" id="slot-btn-袍">🪹</button>
+                        </div>
+                        <div class="slot-wrapper" style="top: 75%; right: 15%;">
+                            <span class="slot-label">履</span>
+                            <button class="slot-btn-v2" onclick="openEquipModal('履')" id="slot-btn-履">🪹</button>
+                        </div>
+                        <div class="slot-wrapper" style="top: 45%; right: 5%;">
+                            <span class="slot-label">持</span>
+                            <button class="slot-btn-v2" onclick="openEquipModal('持')" id="slot-btn-持">🪹</button>
+                        </div>
                     </div>
-                    <button class="btn btn-sm btn-outline" onclick="switchMainView('view-workshop', document.getElementById('dock-workshop')); filterWorkshop('zhixiu');">拜访学艺</button>
-                </li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-
-</div><div id="view-deduction" class="view-container system-layout">
-    <div class="section-title">
-        <div>🕵️ 异闻沙盘 <span class="subtitle" style="margin-left:10px; color:#888;">推演因果，唤醒九州遗卷</span></div>
-    </div>
-    
-    <div class="deduction-layout">
-        <div style="background: rgba(0,0,0,0.4); border-radius: 16px; padding: 30px; border: 1px solid #333; margin-bottom: 30px;">
-            <div class="deduction-altar">
-                <div class="deduction-slot" id="deduction-slot-1" onclick="clearDeductionSlot(1)" title="点击移除">
-                    <div style="font-size:30px; opacity:0.3;">➕</div>
-                    <div style="font-size:12px; color:#888; margin-top:5px;">线索一</div>
+                    
+                    <div id="avatar-title-display" class="avatar-title-glow">「初入凡尘」</div>
                 </div>
-                <div style="font-size:30px; color:var(--gold); opacity:0.5; z-index:10;">+</div>
-                <div class="deduction-slot" id="deduction-slot-2" onclick="clearDeductionSlot(2)" title="点击移除">
-                    <div style="font-size:30px; opacity:0.3;">➕</div>
-                    <div style="font-size:12px; color:#888; margin-top:5px;">线索二</div>
+
+                <div class="profile-info-panel">
+                    <div class="profile-card-v2" style="grid-column: 1 / -1;">
+                        <div class="card-v2-header">🌌 灵台四象 (行为推演)</div>
+                        <div id="persona-stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px;"></div>
+                        <div id="dynamic-persona-tags" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                            <span class="tag-pill" style="background:#eee;color:#666;">暂未冥想，真我未显</span>
+                        </div>
+                    </div>
+                    <div class="profile-card-v2" id="equip-buff-card">
+                        <div class="card-v2-header">⚡ 灵物加持 (装备共鸣)</div>
+                        <div id="equip-buff-list" style="display:flex;flex-direction:column;gap:8px;font-size:13px; margin-top:10px;"></div>
+                    </div>
+                    <div class="profile-card-v2">
+                        <div class="card-v2-header">🤝 虚境良缘 (知音羁绊)</div>
+                        <ul class="social-list-v2" id="social-bonds-list"></ul>
+                    </div>
+                    <div class="profile-card-v2" style="grid-column: 1 / -1;">
+                        <div class="card-v2-header" style="display:flex;justify-content:space-between;width:100%;">
+                            <span>🏆 九州历练 (成就图鉴)</span>
+                            <span style="font-size:13px;color:var(--jade);font-weight:normal;" id="achievement-progress">进度: 0/0</span>
+                        </div>
+                        <div class="achievement-grid" id="dynamic-achievement-grid" style="margin-top: 15px;"></div>
+                    </div>
                 </div>
             </div>
-
-            <div id="deduction-ai-hint" style="text-align: center; margin: 30px 0; font-size: 14px; min-height: 40px;">
-                <span style="color:var(--jade); font-weight:bold;">🤖 灵识寄语：</span>请在下方行囊中选择两件灵物放入阵眼。
+        </div>
+        <div id="view-deduction" class="view-container system-layout">
+            <div class="section-title">
+                <div>🕵️ 异闻沙盘 <span class="subtitle" style="margin-left:10px; color:#888;">推演因果，唤醒九州遗卷</span></div>
             </div>
-
-            <button id="btn-execute-deduction" class="btn btn-gold btn-full" style="font-size: 16px; padding: 15px; opacity: 0.5;" disabled onclick="executeDeduction()">
-                注入灵力 · 开启推演
-            </button>
-        </div>
-
-        <div>
-            <h4 style="color: var(--gold); margin-bottom: 15px; border-bottom: 1px dashed #333; padding-bottom: 10px;">🎒 行囊可用灵物</h4>
-            <div id="deduction-inventory" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px;">
+            
+            <div class="deduction-layout" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                <div style="background: rgba(0,0,0,0.4); border-radius: 16px; padding: 30px; border: 1px solid #333;">
+                    <div class="deduction-altar" style="display: flex; justify-content: center; align-items: center; gap: 80px; padding: 40px 0;">
+                        <div class="deduction-slot" id="deduction-slot-1" onclick="clearDeductionSlot(1)" title="点击移除" style="width: 100px; height: 100px; border: 2px dashed rgba(212,175,55,0.4); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+                            <div style="font-size:30px; opacity:0.3;">➕</div>
+                            <div style="font-size:12px; color:#888; margin-top:5px;">线索一</div>
+                        </div>
+                        <div style="font-size:30px; color:var(--gold); opacity:0.5;">+</div>
+                        <div class="deduction-slot" id="deduction-slot-2" onclick="clearDeductionSlot(2)" title="点击移除" style="width: 100px; height: 100px; border: 2px dashed rgba(212,175,55,0.4); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+                            <div style="font-size:30px; opacity:0.3;">➕</div>
+                            <div style="font-size:12px; color:#888; margin-top:5px;">线索二</div>
+                        </div>
+                    </div>
+                    <div id="deduction-ai-hint" style="text-align: center; margin: 20px 0; font-size: 14px; min-height: 40px;">
+                        <span style="color:var(--jade); font-weight:bold;">🤖 灵识寄语：</span>请在下方行囊中选择两件灵物放入阵眼。
+                    </div>
+                    <button id="btn-execute-deduction" class="btn btn-gold btn-full" style="font-size: 16px; padding: 15px; opacity: 0.5;" disabled onclick="executeDeduction()">
+                        注入灵力 · 开启推演
+                    </button>
                 </div>
-        </div>
-    </div>
-</div>
 
+                <div style="background: white; border-radius: 16px; padding: 20px; border: 1px solid #eee;">
+                    <h4 style="color: var(--cinnabar); margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 10px;">🎒 行囊可用灵物</h4>
+                    <div id="deduction-inventory" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px;">
+                        </div>
+                </div>
+            </div>
+        </div>
 </main>
 
     <nav id="player-dock" class="dock hidden">

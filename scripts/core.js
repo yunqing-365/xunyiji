@@ -1911,70 +1911,76 @@ window.equipItem = function(slot, itemName, _emoji) {
     _updateEquipBuffCard();
 };
 
-// ── 渲染化身视觉（升级版：动态换装 + 光晕特效） ──
+// ── 渲染化身视觉（升级版：动态换装 + 光晕特效 + 装备槽更新） ──
 function _renderEquippedVisuals() {
-    // 1. 动态更换主 emoji
     const avatarEl = document.getElementById('main-avatar-emoji');
     if (avatarEl) {
-        const robe   = gameState.equipment['袍'];
-        const head   = gameState.equipment['首'];
-        const held   = gameState.equipment['持'];
+        const robe = gameState.equipment['袍'];
+        const head = gameState.equipment['首'];
         let baseEmoji = '🧑';
         if (robe === '苗族靛蓝染布') baseEmoji = '🧑‍🎨';
-        else if (robe === '云锦布料')  baseEmoji = '🥻';
-        else if (robe === '蜡染布料')  baseEmoji = '🧑‍🎤';
-        if (head === '金丝楠木皇冠')   baseEmoji = '🫅';
+        else if (robe === '云锦布料' || robe === '云锦霞帔') baseEmoji = '🥻';
+        else if (robe === '蜡染布料') baseEmoji = '🧑‍🎤';
+        if (head === '金丝楠木皇冠') baseEmoji = '🫅';
         avatarEl.innerText = baseEmoji;
         avatarEl.style.animation = 'popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
         setTimeout(() => avatarEl.style.animation = '', 400);
     }
 
-    // 2. 悬浮装备 emoji
     const visualBox = document.getElementById('equipped-visuals');
-    if (!visualBox) return;
-    visualBox.innerHTML = '';
+    if (visualBox) visualBox.innerHTML = '';
 
     const positions = {
-        '首': 'top:8%;left:50%;transform:translateX(-50%);font-size:28px;',
-        '佩': 'top:52%;left:8%;font-size:26px;',
-        '袍': 'top:68%;left:50%;transform:translateX(-50%);font-size:22px;opacity:0.6;',
-        '持': 'top:48%;right:8%;font-size:30px;animation:float 3s ease-in-out infinite;',
-        '履': 'top:88%;left:50%;transform:translateX(-50%);font-size:22px;',
+        '首': 'top:8%;left:50%;transform:translateX(-50%);font-size:38px;',
+        '佩': 'top:52%;left:15%;font-size:32px;',
+        '袍': 'top:68%;left:50%;transform:translateX(-50%);font-size:26px;opacity:0.6;',
+        '持': 'top:48%;right:15%;font-size:40px;animation:float 3s ease-in-out infinite;',
+        '履': 'top:85%;left:50%;transform:translateX(-50%);font-size:32px;',
     };
 
-    let hasAny = false;
+    let powerScore = 100;
+
     for (const slot in gameState.equipment) {
         const itemName = gameState.equipment[slot];
-        if (!itemName) continue;
-        hasAny = true;
-        const meta = (WEARABLE_DICTIONARY[slot] || {})[itemName];
-        if (!meta) continue;
-        visualBox.innerHTML += `
-            <div style="position:absolute;${positions[slot]}filter:drop-shadow(0 2px 8px rgba(212,175,55,0.5));z-index:10;transition:all 0.4s ease;">
-                ${meta.emoji}
-            </div>`;
-    }
-
-    // 3. 套装光晕
-    const avatarBox = document.getElementById('dynamic-avatar-box');
-    if (avatarBox) {
-        const combo = _detectCombo();
-        if (combo) {
-            avatarBox.style.boxShadow = `0 0 30px ${combo.color}88, inset 0 0 20px ${combo.color}22`;
-        } else if (hasAny) {
-            avatarBox.style.boxShadow = '0 0 20px rgba(126,182,161,0.35)';
-        } else {
-            avatarBox.style.boxShadow = '';
+        const btn = document.getElementById(`slot-btn-${slot}`);
+        if (btn) {
+            if (itemName) {
+                const meta = (WEARABLE_DICTIONARY[slot] || {})[itemName];
+                btn.innerHTML = meta ? meta.emoji : '📦';
+                btn.classList.add('equipped');
+                if (meta) {
+                    powerScore += (meta.rarity * 20); 
+                    if (visualBox) {
+                        visualBox.innerHTML += `
+                            <div style="position:absolute;${positions[slot]}filter:drop-shadow(0 2px 10px rgba(212,175,55,0.8));z-index:10;transition:all 0.4s ease;">
+                                ${meta.emoji}
+                            </div>`;
+                    }
+                }
+            } else {
+                btn.innerHTML = '🪹';
+                btn.classList.remove('equipped');
+            }
         }
     }
 
-    // 4. 更新插槽按钮高亮
-    document.querySelectorAll('.slot-btn').forEach(btn => {
-        const slotName = btn.innerText.trim();
-        btn.classList.toggle('equipped', !!gameState.equipment[slotName]);
-    });
+    const powerEl = document.getElementById('avatar-power-score');
+    if (powerEl) {
+        if (_detectCombo()) powerScore += 100; // 套装+100灵力
+        powerEl.innerText = powerScore;
+    }
 
-    // 5. 更新称号
+    const avatarBox = document.querySelector('.avatar-hero-panel');
+    if (avatarBox) {
+        const combo = _detectCombo();
+        if (combo) {
+            avatarBox.style.boxShadow = `0 0 50px ${combo.color}66, inset 0 0 100px ${combo.color}44`;
+            avatarBox.style.borderColor = combo.color;
+        } else {
+            avatarBox.style.boxShadow = '';
+            avatarBox.style.borderColor = 'rgba(126, 182, 161, 0.3)';
+        }
+    }
     _updateTitle();
 }
 
@@ -2003,113 +2009,106 @@ function _updateTitle() {
     titleEl.innerText = gameState.title ? `「${gameState.title}」` : '';
 }
 
+// ── 🧘 冥想凝神：重构四象数据与动态标签 ──
+window.meditatePersona = function() {
+    const tagsBox = document.getElementById('dynamic-persona-tags');
+    if (!tagsBox) return;
+
+    if (typeof playSound === 'function') playSound('magic');
+
+    // 1. 渲染四象柱状图
+    const statsGrid = document.getElementById('persona-stats-grid');
+    if (statsGrid && gameState.lingshi && gameState.lingshi.traits) {
+        const traits = gameState.lingshi.traits;
+        const maxVal = Math.max(100, traits.craft, traits.explore, traits.social, traits.zen);
+        
+        const renderStat = (name, val, color) => `
+            <div class="stat-pillar">
+                <div class="stat-pillar-bg" style="height: ${(val/maxVal)*100}%; background: linear-gradient(to top, ${color}44, ${color}aa);"></div>
+                <div class="stat-pillar-val" style="color:${color}; text-shadow: 0 0 10px ${color};">${Math.floor(val)}</div>
+                <div class="stat-pillar-name">${name}</div>
+            </div>`;
+        
+        statsGrid.innerHTML = 
+            renderStat('🔥 匠心', traits.craft, '#b25d52') +
+            renderStat('🍃 寻幽', traits.explore, '#7eb6a1') +
+            renderStat('🤝 烟火', traits.social, '#e89a65') +
+            renderStat('🧘 禅定', traits.zen, '#8a6da8');
+    }
+
+    // 2. 渲染动态性格标签
+    const tags = [];
+    const addTag = (text, color) => tags.push({ text, color });
+
+    const inv = gameState.inventory || {};
+    const eq  = gameState.equipment  || {};
+    const combo = _detectCombo();
+
+    if (gameState.stones >= 3000) addTag('🪙 富可敌国', 'var(--gold)');
+    if (eq['首'] === '金丝楠木皇冠')  addTag('👑 天之骄子', 'var(--cinnabar)');
+    if (combo) addTag(`✨ ${combo.name}`, combo.color);
+    if ((inv['千年灵芝'] || 0) > 0) addTag('🍄 气运之子', 'var(--jade)');
+    if ((gameState.restoredNodes || []).length > 0) addTag('🏮 九州点灯人', 'var(--amber)');
+
+    if (tags.length === 0) addTag('🌱 初入凡尘', '#888');
+
+    tagsBox.innerHTML = '';
+    tags.forEach((tag, i) => {
+        setTimeout(() => {
+            tagsBox.innerHTML += `<span class="tag-pill" style="color:${tag.color}; border:1px solid ${tag.color}; background:rgba(0,0,0,0.3); animation: popIn 0.3s ease;">${tag.text}</span>`;
+        }, i * 150);
+    });
+
+    // 3. 渲染羁绊列表
+    const socialList = document.getElementById('social-bonds-list');
+    if (socialList && gameState.intimacy) {
+        let sHtml = '';
+        for (let npcName in gameState.intimacy) {
+            if (npcName.includes('_')) continue;
+            const val = gameState.intimacy[npcName];
+            if (val > 0) {
+                sHtml += `
+                <li>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:16px;">${val >= 50 ? '💖' : '🤝'}</div>
+                        <span style="color:#e8dcc8; font-size:14px;">${npcName}</span>
+                    </div>
+                    <span style="color:var(--cinnabar); font-weight:bold; font-size:13px;">羁绊: ${val}</span>
+                </li>`;
+            }
+        }
+        socialList.innerHTML = sHtml || '<li style="color:#888; font-size:13px; justify-content:center;">九州之大，暂无故交</li>';
+    }
+
+    _updateTitle();
+    _updateEquipBuffCard();
+    showNotification('灵台空明，真我浮现…数据已同步至化身。', '🧘');
+};
+
 // ── 更新装备效果汇总卡片 ──
 function _updateEquipBuffCard() {
-    const card = document.getElementById('equip-buff-card');
     const list = document.getElementById('equip-buff-list');
-    if (!card || !list) return;
+    if (!list) return;
 
     let buffs = [];
     for (const slot in gameState.equipment) {
         const itemName = gameState.equipment[slot];
         if (!itemName) continue;
         const meta = (WEARABLE_DICTIONARY[slot] || {})[itemName];
-        if (meta) buffs.push(`<div style="padding:5px 0;border-bottom:1px dashed #eee;color:var(--ink);">${meta.emoji} <strong>${itemName}</strong>：<span style="color:var(--jade);">${meta.effect}</span></div>`);
+        if (meta) buffs.push(`<div style="padding:6px 0; border-bottom:1px dashed #333; color:#ccc;">${meta.emoji} <strong style="color:white;">${itemName}</strong>：<span style="color:var(--jade);">${meta.effect}</span></div>`);
     }
     const combo = _detectCombo();
     if (combo) {
-        buffs.push(`<div style="padding:6px 10px;margin-top:6px;background:${combo.bg};border-radius:8px;border-left:3px solid ${combo.color};font-size:12px;color:${combo.color};"><strong>${combo.name}</strong> 套装效果：${combo.desc}</div>`);
+        buffs.push(`<div style="padding:10px; margin-top:10px; background:rgba(212,175,55,0.1); border-radius:8px; border-left:3px solid ${combo.color}; font-size:13px; color:${combo.color};"><strong>【套装】${combo.name}</strong>：${combo.desc}</div>`);
     }
 
     if (buffs.length === 0) {
-        card.style.display = 'none';
+        list.innerHTML = '<div style="color: #888; text-align: center; padding: 20px 0;">尚未穿戴任何灵物</div>';
     } else {
-        card.style.display = 'block';
         list.innerHTML = buffs.join('');
     }
 }
 
-// ── 🧘 冥想凝神：动态性格标签（升级版，逐个动画浮现） ──
-window.meditatePersona = function() {
-    const tagsBox = document.getElementById('dynamic-persona-tags');
-    if (!tagsBox) return;
-
-    const avatarBox = document.getElementById('dynamic-avatar-box');
-    if (avatarBox) {
-        avatarBox.style.animation = 'pulse 0.6s ease 2';
-        setTimeout(() => avatarBox.style.animation = '', 1200);
-    }
-    if (typeof playSound === 'function') playSound('magic');
-
-    const tags = [];
-    const addTag = (text, color, bg) => tags.push({ text, color, bg });
-
-    const inv = gameState.inventory || {};
-    const eq  = gameState.equipment  || {};
-    const totalItems = Object.values(inv).reduce((a, b) => a + b, 0);
-    const combo = _detectCombo();
-
-    // ── 财富 ──
-    if (gameState.stones >= 3000)     addTag('🪙 富可敌国',     'var(--gold)',    '#fdf8e8');
-    else if (gameState.stones >= 1500) addTag('🪙 富甲一方',    'var(--gold)',    '#fdf8e8');
-    else if (gameState.stones < 100)   addTag('💸 囊中羞涩',    '#888',           '#eee');
-
-    // ── 装备气质 ──
-    if (eq['首'] === '金丝楠木皇冠')  addTag('👑 真命天子',     'var(--cinnabar)','#fde8e8');
-    if (eq['持'] === '苏绣青皮团扇')  addTag('🦋 雅致风流',     'var(--jade)',    '#e8f4ef');
-    if (eq['佩'] === '明代紫砂壶')    addTag('🍵 品茗居士',     '#5d3a29',        '#f0e6df');
-    if (eq['佩'] === '神秘符文石')    addTag('🔮 异闻探知者',   'var(--purple)',  '#f0ebf6');
-    if (eq['袍'] === '苗族靛蓝染布')  addTag('💙 苗疆传人',     '#3d6b8a',        '#e8f0f8');
-    if (eq['持'] === '宋式点茶茶碗')  addTag('🍵 点茶宗师',     '#4a7c5a',        '#edf6f2');
-    if (eq['持'] === '龙泉镇窑之壶')  addTag('🔥 窑火重燃',     '#c0512a',        '#fdeee8');
-    if (eq['履'] === '发条青鸟')      addTag('🕊️ 墨家游侠',    '#5a5a8a',        '#eeeef8');
-
-    // ── 套装联动 ──
-    if (combo) addTag(combo.name, combo.color, combo.bg);
-
-    // ── 背包物品 ──
-    if (inv['现代仿制破砖头'] > 0)     addTag('🧱 黑市大冤种',  '#666',           '#e0e0e0');
-    if (totalItems > 30)               addTag('🎒 仓鼠症晚期',   'var(--amber)',   '#fdf3e8');
-    else if (totalItems > 15)          addTag('🎒 行囊充实',     'var(--amber)',   '#fdf3e8');
-    if ((inv['百年红酒'] || 0) > 0 || (inv['陈年女儿红'] || 0) > 0)
-                                        addTag('🍷 好酒之人',    'var(--cinnabar)','#fde8e8');
-    if ((inv['明前龙井'] || 0) >= 5)   addTag('🍃 茶道入门',    'var(--jade)',    '#e8f4ef');
-
-    // ── 复苏经历 ──
-    const restored = (gameState.restoredNodes || []).length;
-    if (restored >= 2)    addTag('✨ 九州守护者',    'var(--gold)',    '#fdf8e8');
-    else if (restored >= 1) addTag('🌿 灵场点灯人', 'var(--jade)',    '#e8f4ef');
-
-    // ── 成就 ──
-    if (gameState.achievements?.['craft_first']) addTag('⚒️ 天工开物', 'var(--ink)', '#f5f0e8');
-
-    // ── 兜底 ──
-    if (tags.length === 0) {
-        addTag('🌱 初入凡尘', 'var(--jade)',   '#e8f4ef');
-        addTag('✨ 潜力无限', 'var(--purple)', '#f0ebf6');
-    }
-
-    // 逐个动画浮现
-    tagsBox.innerHTML = '';
-    tags.forEach((tag, i) => {
-        setTimeout(() => {
-            const span = document.createElement('span');
-            span.className = 'tag-pill';
-            span.style.cssText = `color:${tag.color};background:${tag.bg};padding:5px 12px;border-radius:15px;font-size:13px;font-weight:bold;border:1px solid ${tag.color}33;opacity:0;transform:translateY(8px);transition:all 0.35s ease;`;
-            span.innerText = tag.text;
-            tagsBox.appendChild(span);
-            requestAnimationFrame(() => {
-                span.style.opacity = '1';
-                span.style.transform = 'translateY(0)';
-            });
-        }, i * 120);
-    });
-
-    // 刷新称号和效果卡片
-    _updateTitle();
-    _updateEquipBuffCard();
-    showNotification('灵台空明，真我浮现…', '🧘');
-};
 // ============================================================
 // 十七、全动态成就图鉴系统
 // ============================================================

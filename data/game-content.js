@@ -1832,3 +1832,107 @@ const LINGSHI_DATA = {
         }
     ]
 };
+
+/* ══════════════════════════════════════════════════════════
+   十二、化身纪：装备库与套装羁绊字典
+   ══════════════════════════════════════════════════════════ */
+
+// ── 1. 全系装备字典 ──
+const WEARABLE_DICTIONARY = {
+    '首': {
+        '金丝楠木皇冠':   { emoji: '👑', effect: '气场全开，大幅提升NPC羁绊获取速度', rarity: 5 },
+        '精美花灯':       { emoji: '🏮', effect: '夜间探索时，隐藏废墟更易显现', rarity: 3 },
+        '书生竹冠':       { emoji: '🎓', effect: '文人雅士，触发特殊茶道对话', rarity: 2 },
+        '变脸面具':       { emoji: '🎭', effect: '神秘莫测，有概率吓跑敌意生物', rarity: 3 },
+        '法老黄金面具':   { emoji: '👑', effect: '异域王权，沙海遗城探索不消耗体力', rarity: 5 },
+        '花环':           { emoji: '🌸', effect: '自然亲和，森林动物不再躲避', rarity: 2 }
+    },
+    '佩': {
+        '明代紫砂壶':     { emoji: '🫖', effect: '在茶道相关场景中，采集量额外+1', rarity: 4 },
+        '神秘符文石':     { emoji: '🔮', effect: '推演沙盘时，灵识提示精准度飙升', rarity: 4 },
+        '南海珍珠':       { emoji: '💍', effect: '九州商行交易时随机触发特别折扣', rarity: 3 },
+        '安神香囊':       { emoji: '🪬', effect: '抵御大遗忘迷雾区域的异常状态', rarity: 2 },
+        '云锦荷包':       { emoji: '👝', effect: '挂机探索时，物资掉落概率提升', rarity: 3 },
+        '鎏金玉坠':       { emoji: '💍', effect: '聚拢气运，提升高阶矿石掉落率', rarity: 5 },
+        '海韵玉坠':       { emoji: '🌊', effect: '沧溟海域探索如履平地', rarity: 5 },
+        '珍珠金手镯':     { emoji: '💎', effect: '交易基础折扣减少5%', rarity: 4 },
+        '鲛绡金手镯':     { emoji: '🌊', effect: '免疫深海压强干扰', rarity: 4 },
+        '龙涎香丸':       { emoji: '🐉', effect: '周身奇香，自动吸引稀有动物', rarity: 5 },
+        '避水珠':         { emoji: '🔮', effect: '进入深海遗迹的必备神物', rarity: 5 }
+    },
+    '袍': {
+        '云锦布料':       { emoji: '👘', effect: '进入锦绣坊区域时，丝线采集量翻倍', rarity: 3 },
+        '蜡染布料':       { emoji: '🎨', effect: '染坊类造物成功率+15%', rarity: 3 },
+        '苗族靛蓝染布':   { emoji: '💙', effect: '青岚界所有采集点产出必定暴击', rarity: 4 },
+        '月白霓裳':       { emoji: '🌕', effect: '极品法衣，夜间魅力+100', rarity: 5 },
+        '金丝皮影套':     { emoji: '🎭', effect: '身轻如影，增加夜间隐蔽性', rarity: 5 },
+        '云锦霞帔':       { emoji: '🥻', effect: '华贵无双，全大世界NPC初始好感提升', rarity: 4 },
+        '鲛绡云锦霞帔':   { emoji: '🌊', effect: '水火不侵，入海如归', rarity: 5 },
+        '梨园云锦霞帔':   { emoji: '🎭', effect: '万艺城戏班VIP专属待遇', rarity: 5 }
+    },
+    '履': {
+        '发条青鸟':       { emoji: '🕊️', effect: '探索大地图时移动速度提升10%', rarity: 5 },
+        '灵竹木鸢':       { emoji: '🎋', effect: '青岚界移动速度激增20%', rarity: 4 },
+        '望远木鸢':       { emoji: '🔍', effect: '大幅提升小地图可视范围', rarity: 4 },
+        '琥珀木灵兽':     { emoji: '🦂', effect: '沙海中自动避开流沙陷阱', rarity: 5 }
+    },
+    '持': {
+        '苏绣青皮团扇':   { emoji: '🪭', effect: '交谈NPC时触发专属剧情分支', rarity: 3 },
+        '幻海流光扇':     { emoji: '🌬️', effect: '扇动时有海潮之音，平息狂躁状态', rarity: 5 },
+        '夜光幽梦扇':     { emoji: '✨', effect: '夜间探索时自动照亮周边区域', rarity: 4 },
+        '梨园雅韵扇':     { emoji: '🎭', effect: '在戏台听曲时感悟倍增', rarity: 4 },
+        '古绣流云扇':     { emoji: '☁️', effect: '如沐春风，降低行动体力消耗', rarity: 4 },
+        '宋式点茶茶碗':   { emoji: '🍵', effect: '进入茶园时触发守岁人隐藏任务', rarity: 4 },
+        '曜变天目茶盏':   { emoji: '🌌', effect: '品茶时进入“顿悟”状态的概率大幅提升', rarity: 5 },
+        '龙泉镇窑之壶':   { emoji: '🏺', effect: '陶瓷类造物材料消耗-1', rarity: 4 },
+        '秘色青瓷瓶':     { emoji: '🏺', effect: '放在身侧，自动聚拢周围灵气', rarity: 5 },
+        '海韵青瓷梅瓶':   { emoji: '🌊', effect: '瓶中自生甘泉，免疫沙漠脱水', rarity: 5 },
+        '商周纹瓷尊':     { emoji: '🪨', effect: '古朴厚重，震慑妖邪', rarity: 5 },
+        '百鸟朝凤唢呐':   { emoji: '📯', effect: '一吹百鸟来朝，召唤飞行生灵', rarity: 4 },
+        '十二生肖剪纸套组':{ emoji: '✂️', effect: '逢凶化吉，化解大遗忘迷雾', rarity: 3 },
+        '核舟记核雕':     { emoji: '🥜', effect: '微观世界，提升发现隐藏节点的概率', rarity: 5 }
+    }
+};
+
+// ── 2. 套装联动配方 ──
+const PERSONA_COMBOS = [
+    {
+        name: '👑 真命天工', color: 'var(--gold)', bg: '#fdf8e8',
+        require: { '首': '金丝楠木皇冠', '持': '苏绣青皮团扇' },
+        desc: '身着皇冠，执扇风流，九州匠人无不折服。',
+    },
+    {
+        name: '🍵 山中隐士', color: '#5d3a29', bg: '#f0e6df',
+        require: { '佩': '明代紫砂壶', '袍': '云锦布料' },
+        desc: '云锦披身，壶不离手，茶香与墨香同绕其身。',
+    },
+    {
+        name: '🔮 异闻推演师', color: 'var(--purple)', bg: '#f0ebf6',
+        require: { '佩': '神秘符文石', '持': '苏绣青皮团扇' },
+        desc: '符文在佩，团扇遮面，世间秘事皆在掌中。',
+    },
+    {
+        name: '💙 苗疆织梦人', color: '#3d6b8a', bg: '#e8f0f8',
+        require: { '袍': '苗族靛蓝染布', '持': '宋式点茶茶碗' },
+        desc: '苗绣为袍，茶碗护道，复苏的灵场因你而生。',
+    },
+    {
+        name: '🌊 龙王降世', color: '#1a3a6a', bg: '#e8f0f8',
+        require: { '佩': '海韵玉坠', '袍': '鲛绡云锦霞帔', '持': '幻海流光扇' },
+        desc: '水火不侵，龙涎相随，宛如深海龙王降世。'
+    },
+    {
+        name: '🕊️ 墨家巨子', color: '#4a5a6a', bg: '#eceef4',
+        require: { '履': '发条青鸟', '佩': '神秘符文石' },
+        desc: '机巧造物，天下无双。'
+    }
+];
+
+// ── 3. 称号判定条件 ──
+const TITLE_DATA = [
+    { id: 'title_rich',       name: '富甲九州',   condition: s => s.stones >= 2000 },
+    { id: 'title_collector',  name: '万物收藏家', condition: s => Object.values(s.inventory||{}).reduce((a,b)=>a+b,0) >= 30 },
+    { id: 'title_restorer',   name: '灵场复苏者', condition: s => s.restoredNodes && s.restoredNodes.length >= 1 },
+    { id: 'title_crafter',    name: '天工巨匠',   condition: s => s.achievements && s.achievements['craft_first'] },
+    { id: 'title_explorer',   name: '九州行者',   condition: s => s.achievements && s.achievements['first_interact'] },
+];

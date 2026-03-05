@@ -282,6 +282,23 @@ const sceneConfig = {
         { id: 'bwx_hidden_recipe',  type: 'hidden',   icon: '✨', label: '???',       pos: { x: 2000, y: 600 }, floatDelay: '0.8s', data: { triggerDesc: '你在老灶台后发现了一张泛黄的秘方纸，上面记载着失传百年的"九层糕"做法……', rewardItem: '秘方残页', rewardIcon: '📜', rewardCount: 1, rarity: 4, questTrigger: null } },
         { id: 'bwx_rest_jiuzhan',   type: 'rest',     icon: '🍻', label: '酒肆',     pos: { x: 1800, y: 1100 }, floatDelay: '2.5s', data: { name: '醉仙楼', desc: '一碗老酒，听说书人讲九州奇闻', healAmount: 25, randomEvent: true } },
       ],
+
+   // 👇 加入 百味巷 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 6000,
+        dropPool: [
+          { itemName: '五香料', icon: '🌶️', rarity: 1, weight: 60 },
+          { itemName: '糕点材料', icon: '🍘', rarity: 1, weight: 40 }
+        ],
+        critters: [
+          { type: 'dog', icon: '🐕', count: 2, behavior: 'wander' },
+          { type: 'cat', icon: '🐈', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies'
+      },
+
+
       blockedZones: [
         { x: 0, y: 0, w: 2200, h: 80 },
         { x: 0, y: 1420, w: 2200, h: 80 },
@@ -459,6 +476,23 @@ const sceneConfig = {
 },
 
       ],
+
+    // 👇 加入 百作镇 生态
+      ecology: {
+        maxDrops: 10,
+        spawnInterval: 5000,
+        dropPool: [
+          { itemName: '高岭陶土', icon: '🏺', rarity: 1, weight: 50 },
+          { itemName: '赤铁矿粉', icon: '🔴', rarity: 2, weight: 30 },
+          { itemName: '沉香木料', icon: '🪵', rarity: 3, weight: 20 }
+        ],
+        critters: [
+          { type: 'dog', icon: '🐕', count: 2, behavior: 'wander' },
+          { type: 'bird', icon: '🕊️', count: 3, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies' // 模拟工坊打铁的火星
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2500, h: 80 },
         { x: 0, y: 1620, w: 2500, h: 80 },
@@ -509,6 +543,23 @@ const sceneConfig = {
         { id: 'jxf_hidden_needle', type: 'hidden',   icon: '✨', label: '???',       pos: { x: 2100, y: 1300 }, floatDelay: '0.6s', data: { triggerDesc: '绣架后面，藏着一枚传说中的"金针"。绣娘说，用此针绣出的作品，针脚细如发丝……', rewardItem: '金绣针', rewardIcon: '🪡', rewardCount: 1, rarity: 5, questTrigger: 'side_embroidery_master' } },
         { id: 'jxf_rest_xiupo',    type: 'rest',     icon: '🪑', label: '绣楼阁',   pos: { x: 1100, y: 1300 }, floatDelay: '2.8s', data: { name: '绣楼阁', desc: '临窗绣花，听江南小调', healAmount: 35, randomEvent: true } },
       ],
+
+     // 👇 加入 锦绣坊 生态
+      ecology: {
+        maxDrops: 10,
+        spawnInterval: 5500,
+        dropPool: [
+          { itemName: '苏绣丝线', icon: '🧵', rarity: 2, weight: 50 },
+          { itemName: '戏服丝料', icon: '🎀', rarity: 2, weight: 30 },
+          { itemName: '云锦布料', icon: '👘', rarity: 3, weight: 20 }
+        ],
+        critters: [
+          { type: 'butterfly', icon: '🦋', count: 5, behavior: 'wander' },
+          { type: 'cat', icon: '🐈', count: 1, behavior: 'flee' }
+        ],
+        particleEffect: 'petals'
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2300, h: 80 },
         { x: 0, y: 1520, w: 2300, h: 80 },
@@ -539,6 +590,8 @@ const sceneConfig = {
       { icon: '🏪', name: '香料铺',     desc: '购买西域香料',             func: 'openShop()' },
     ],
 
+
+
     exploration: {
       mapWidth: 2800, mapHeight: 1600,
       layers: [
@@ -556,6 +609,22 @@ const sceneConfig = {
         { id: 'txy_hidden_cave', type: 'hidden',   icon: '✨', label: '???',        pos: { x: 2600, y: 400 }, floatDelay: '0.6s', data: { triggerDesc: '沙丘深处，你发现了一处隐秘石窟。窟内壁画完好，记载着一段从未被记录的丝路传说……', rewardItem: '壁画拓片', rewardIcon: '🎨', rewardCount: 1, rarity: 4, questTrigger: 'side_silk_road' } },
         { id: 'txy_rest_oasis',  type: 'rest',     icon: '🌴', label: '绿洲',      pos: { x: 1300, y: 1300 }, floatDelay: '2.5s', data: { name: '沙漠绿洲', desc: '在绿洲边的椰树下休憩，远处驼铃声声', healAmount: 45, randomEvent: true } },
       ],
+
+        // 👇 加入 通西域 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 7000,
+        dropPool: [
+          { itemName: '西域香料', icon: '🌶️', rarity: 2, weight: 60 },
+          { itemName: '古丝绸碎片', icon: '🎀', rarity: 3, weight: 40 }
+        ],
+        critters: [
+          { type: 'camel', icon: '🐪', count: 2, behavior: 'wander' },
+          { type: 'eagle', icon: '🦅', count: 1, behavior: 'flee' }
+        ],
+        particleEffect: 'bamboo-leaves' // 模拟风沙飞舞
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2800, h: 80 },
         { x: 0, y: 1520, w: 2800, h: 80 },
@@ -604,6 +673,22 @@ const sceneConfig = {
         { id: 'yjd_hidden_core',  type: 'hidden',   icon: '✨', label: '???',       pos: { x: 2200, y: 400 }, floatDelay: '0.5s', data: { triggerDesc: '你在服务器角落发现了一段神秘代码。解析后，里面竟然是一位百年前艺术家的全息留影……', rewardItem: '百年全息影像', rewardIcon: '📸', rewardCount: 1, rarity: 5, questTrigger: null } },
         { id: 'yjd_rest_cafe',    type: 'rest',     icon: '☕', label: '赛博茶馆', pos: { x: 1100, y: 1300 }, floatDelay: '2.5s', data: { name: '赛博茶馆', desc: '融合古典与科技的茶饮体验，一杯"数字普洱"', healAmount: 40, randomEvent: false } },
       ],
+
+    // 👇 加入 元境都 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 6000,
+        dropPool: [
+          { itemName: '非遗数据芯片', icon: '💾', rarity: 3, weight: 50 },
+          { itemName: '全息晶石', icon: '🔮', rarity: 3, weight: 50 }
+        ],
+        critters: [
+          { type: 'robot', icon: '🤖', count: 3, behavior: 'wander' },
+          { type: 'drone', icon: '🛸', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies' // 模拟赛博数据流光
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2400, h: 80 },
         { x: 0, y: 1520, w: 2400, h: 80 },
@@ -651,6 +736,24 @@ const sceneConfig = {
         { id: 'wxt_hidden_miao',  type: 'hidden',   icon: '✨', label: '???',        pos: { x: 2300, y: 1200 }, floatDelay: '0.7s', data: { triggerDesc: '庙会角落里，一个老奶奶静静地剪着窗花。她抬头看了你一眼："孩子，你像极了当年的那位……"随后递给你一张神秘的剪纸……', rewardItem: '灵犀剪纸', rewardIcon: '✂️', rewardCount: 1, rarity: 4, questTrigger: 'main_folk_origin' } },
         { id: 'wxt_game_riddle',  type: 'game',     icon: '🏮', label: '灯谜摊',    pos: { x: 1100, y: 300 }, floatDelay: '1.8s', data: { gameType: 'riddle', name: '猜灯谜', desc: '答对一题获得 50 灵石' } },
       ],
+
+    // 👇 加入 万象台 生态
+      ecology: {
+        maxDrops: 12,
+        spawnInterval: 4500,
+        dropPool: [
+          { itemName: '传统年糕', icon: '🎂', rarity: 1, weight: 50 },
+          { itemName: '精美花灯', icon: '🏮', rarity: 2, weight: 30 },
+          { itemName: '五香料', icon: '🌶️', rarity: 1, weight: 20 }
+        ],
+        critters: [
+          { type: 'rabbit', icon: '🐇', count: 3, behavior: 'flee' },
+          { type: 'dragon', icon: '🐉', count: 1, behavior: 'wander' }
+        ],
+        particleEffect: 'petals' // 模拟节庆花瓣/礼花
+      },
+
+
       blockedZones: [
         { x: 0, y: 0, w: 2500, h: 80 },
         { x: 0, y: 1620, w: 2500, h: 80 },
@@ -702,6 +805,22 @@ const sceneConfig = {
         { id: 'olb_hidden_book',  type: 'hidden',   icon: '✨', label: '???',       pos: { x: 2200, y: 350 }, floatDelay: '0.5s', data: { triggerDesc: '密室的书架后，藏着一本手抄的炼金手记，页页金光闪烁……', rewardItem: '炼金手记', rewardIcon: '📕', rewardCount: 1, rarity: 5, questTrigger: null } },
         { id: 'olb_rest_tavern',  type: 'rest',     icon: '🍻', label: '骑士酒馆', pos: { x: 1100, y: 1300 }, floatDelay: '2.5s', data: { name: '金鹰酒馆', desc: '古堡中的小酒馆，听吟游诗人讲异域传说', healAmount: 35, randomEvent: true } },
       ],
+
+    // 👇 加入 欧罗巴古堡 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 6500,
+        dropPool: [
+          { itemName: '炼金草药', icon: '🌿', rarity: 2, weight: 70 },
+          { itemName: '百年红酒', icon: '🍷', rarity: 3, weight: 30 }
+        ],
+        critters: [
+          { type: 'bat', icon: '🦇', count: 4, behavior: 'wander' },
+          { type: 'owl', icon: '🦉', count: 1, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies'
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2400, h: 80 },
         { x: 0, y: 1520, w: 2400, h: 80 },
@@ -749,6 +868,22 @@ const sceneConfig = {
         { id: 'mdz_collect_rune', type: 'collect',  icon: '🔮', label: '符文石',   pos: { x: 700,  y: 1100 }, floatDelay: '2s',  data: { itemName: '神秘符文石', itemIcon: '🔮', itemType: 'collection', count: 1, rarity: 4, desc: '刻有上古符文的神秘石块', respawnSecs: 840 } },
         { id: 'mdz_hidden_lib',   type: 'hidden',   icon: '✨', label: '???',       pos: { x: 2000, y: 400 }, floatDelay: '0.6s', data: { triggerDesc: '书架最深处，藏着一本《死灵之书》残本。页面上的符文随视线流动，似乎在低语……', rewardItem: '死灵之书残页', rewardIcon: '📕', rewardCount: 1, rarity: 5, questTrigger: null } },
       ],
+
+    // 👇 加入 秘典之境 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 6500,
+        dropPool: [
+          { itemName: '炼金草药', icon: '🌿', rarity: 2, weight: 60 },
+          { itemName: '神秘符文石', icon: '🔮', rarity: 4, weight: 40 }
+        ],
+        critters: [
+          { type: 'black_cat', icon: '🐈‍⬛', count: 2, behavior: 'flee' },
+          { type: 'owl', icon: '🦉', count: 2, behavior: 'wander' }
+        ],
+        particleEffect: 'fireflies' // 模拟魔法星尘
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2200, h: 80 },
         { x: 0, y: 1420, w: 2200, h: 80 },
@@ -795,6 +930,23 @@ const sceneConfig = {
         { id: 'cmh_collect_pearl', type: 'collect',  icon: '💍', label: '珍珠',      pos: { x: 700,  y: 1200 }, floatDelay: '2s',  data: { itemName: '南海珍珠', itemIcon: '💍', itemType: 'collection', count: 1, rarity: 4, desc: '深海蚌中孕育的稀有珍珠', respawnSecs: 900 } },
         { id: 'cmh_hidden_palace', type: 'hidden',   icon: '✨', label: '???',        pos: { x: 2300, y: 1300 }, floatDelay: '0.7s', data: { triggerDesc: '珊瑚丛后，隐约可见一座沉没的水下宫殿。宫殿门上刻着一行字："此处藏有失落的海上丝绸之路……"', rewardItem: '海上丝路图', rewardIcon: '🗺️', rewardCount: 1, rarity: 5, questTrigger: 'side_sea_route' } },
       ],
+
+    // 👇 加入 沧溟海域 生态
+      ecology: {
+        maxDrops: 10,
+        spawnInterval: 5000,
+        dropPool: [
+          { itemName: '彩色贝壳', icon: '🐚', rarity: 1, weight: 60 },
+          { itemName: '南海珍珠', icon: '💍', rarity: 4, weight: 40 }
+        ],
+        critters: [
+          { type: 'fish', icon: '🐟', count: 5, behavior: 'flee' },
+          { type: 'crab', icon: '🦀', count: 3, behavior: 'wander' },
+          { type: 'turtle', icon: '🐢', count: 1, behavior: 'wander' }
+        ],
+        particleEffect: 'fireflies' // 模拟深海荧光浮游生物
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2500, h: 80 },
         { x: 0, y: 1620, w: 2500, h: 80 },
@@ -842,6 +994,22 @@ const sceneConfig = {
         { id: 'fkyj_hidden_tower', type: 'hidden',   icon: '✨', label: '???',      pos: { x: 2400, y: 300 }, floatDelay: '0.5s', data: { triggerDesc: '云雾深处，有一座悬浮的风铃塔。每一声铃响，都像是在传递来自远方的信息……', rewardItem: '天籁风铃', rewardIcon: '🎐', rewardCount: 1, rarity: 5, questTrigger: null } },
         { id: 'fkyj_rest_pavilion', type: 'rest',    icon: '☁️', label: '云亭',    pos: { x: 1200, y: 1300 }, floatDelay: '2.8s', data: { name: '云端亭', desc: '在云中漫步，俯瞰九州大地', healAmount: 60, randomEvent: false } },
       ],
+
+    // 👇 加入 浮空云境 生态
+      ecology: {
+        maxDrops: 10,
+        spawnInterval: 5500,
+        dropPool: [
+          { itemName: '上等竹料', icon: '🎋', rarity: 2, weight: 60 },
+          { itemName: '云雀灵羽', icon: '🪶', rarity: 3, weight: 40 }
+        ],
+        critters: [
+          { type: 'bird', icon: '🕊️', count: 5, behavior: 'wander' },
+          { type: 'eagle', icon: '🦅', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'petals'
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2600, h: 80 },
         { x: 0, y: 1520, w: 2600, h: 80 },
@@ -888,6 +1056,22 @@ const sceneConfig = {
         { id: 'shyc_collect_gold', type: 'collect',  icon: '🏺', label: '古陶罐',   pos: { x: 600,  y: 1200 }, floatDelay: '2s',  data: { itemName: '古埃及陶罐', itemIcon: '🏺', itemType: 'collection', count: 1, rarity: 3, desc: '保存完好的古埃及彩绘陶罐', respawnSecs: 720 } },
         { id: 'shyc_hidden_tomb', type: 'hidden',   icon: '✨', label: '???',        pos: { x: 2500, y: 400 }, floatDelay: '0.6s', data: { triggerDesc: '金字塔密室中，你发现了法老的黄金面具。它与一件苏绣摆在同一个石台上——这意味着什么？', rewardItem: '法老黄金面具', rewardIcon: '👑', rewardCount: 1, rarity: 5, questTrigger: null } },
       ],
+
+    // 👇 加入 沙海遗城 生态
+      ecology: {
+        maxDrops: 8,
+        spawnInterval: 7000,
+        dropPool: [
+          { itemName: '尼罗河莎草', icon: '🌾', rarity: 2, weight: 60 },
+          { itemName: '西域香料', icon: '🌶️', rarity: 2, weight: 40 }
+        ],
+        critters: [
+          { type: 'scorpion', icon: '🦂', count: 3, behavior: 'wander' },
+          { type: 'snake', icon: '🐍', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies'
+      },
+
       blockedZones: [
         { x: 0, y: 0, w: 2700, h: 80 },
         { x: 0, y: 1520, w: 2700, h: 80 },
@@ -937,6 +1121,23 @@ const sceneConfig = {
         { id: 'szdy_hidden_tree', type: 'hidden',    icon: '✨', label: '???',       pos: { x: 2400, y: 1500 }, floatDelay: '0.6s', data: { triggerDesc: '古树的树洞里，藏着一本用树皮写成的古书。第一页写道："此乃世间所有草药的母典……"', rewardItem: '草药母典', rewardIcon: '📗', rewardCount: 1, rarity: 5, questTrigger: 'side_herb_master' } },
         { id: 'szdy_rest_treehouse', type: 'rest',   icon: '🌳', label: '精灵树屋', pos: { x: 1300, y: 1300 }, floatDelay: '3s',  data: { name: '精灵树屋', desc: '精灵为你准备的树屋，温暖而神奇', healAmount: 70, randomEvent: true } },
       ],
+
+     // 👇 加入 森之低语 生态
+      ecology: {
+        maxDrops: 12,
+        spawnInterval: 4500,
+        dropPool: [
+          { itemName: '紫苏叶', icon: '🌿', rarity: 1, weight: 50 },
+          { itemName: '百花精华', icon: '🌸', rarity: 2, weight: 40 },
+          { itemName: '千年灵芝', icon: '🍄', rarity: 4, weight: 10 }
+        ],
+        critters: [
+          { type: 'butterfly', icon: '🦋', count: 6, behavior: 'wander' },
+          { type: 'rabbit', icon: '🐇', count: 2, behavior: 'flee' }
+        ],
+        particleEffect: 'fireflies'
+      },
+
       blockedZones: [
         { x: 0,    y: 0,    w: 2600, h: 80 },
         { x: 0,    y: 1720, w: 2600, h: 80 },

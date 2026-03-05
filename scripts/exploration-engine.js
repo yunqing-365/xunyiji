@@ -315,6 +315,10 @@ function _expCollect(label, idx) {
     const itemName = label.replace(/采集[:：]\s*/g, '').replace('采集', '').trim();
     const nodeEl = document.querySelector(`#exp-nodes .exp-node[data-idx="${idx}"]`);
     if (nodeEl) {
+        // 🌟 修复：防止玩家疯狂按F重复拾取导致卡死
+        if (nodeEl.style.pointerEvents === 'none') return;
+        nodeEl.style.pointerEvents = 'none';
+        
         nodeEl.style.transition = 'transform 0.4s ease, opacity 0.4s ease'; 
         nodeEl.style.transform = 'translate(-50%,-50%) scale(0) rotate(20deg)'; 
         nodeEl.style.opacity = '0';
@@ -322,16 +326,12 @@ function _expCollect(label, idx) {
             nodeEl.style.transition = 'transform 0.5s ease, opacity 0.5s ease'; 
             nodeEl.style.transform = 'translate(-50%,-50%) scale(1) rotate(0)'; 
             nodeEl.style.opacity = '1'; 
+            nodeEl.style.pointerEvents = 'auto'; // 固定物资 30 秒后恢复可采集
         }, 30000);
     }
     
     if(typeof addItem === 'function') addItem(itemName, 3);
-    
-    // 🌟【核心接线】：向任务大脑广播采集事件，一次采集3个
-    if (typeof dispatchQuestEvent === 'function') {
-        dispatchQuestEvent('collect_item', 3);
-    }
-    
+    if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('collect_item', 3);
     showNotification(`采集了【${itemName} ×3】，已放入灵犀袋！`, '🌿');
 }
 
@@ -465,15 +465,17 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'd': case 'arrowright': _exp.keys.d = true; break; 
             case 'f': 
                 if (_exp.nearbyNode && !_exp.isPaused) { 
-                    triggerInteraction(_exp.nearbyNode.dataset.type, _exp.nearbyNode.dataset.label, parseInt(_exp.nearbyNode.dataset.idx)); 
+                    // 🌟 修复：区分生态随机散落物 和 固定节点
+                    if (_exp.nearbyNode.classList.contains('eco-node')) {
+                        const dropId = _exp.nearbyNode.dataset.id;
+                        const itemName = _exp.nearbyNode.dataset.label.replace('采集 ', '');
+                        _collectDynamicDrop(_exp.nearbyNode, itemName, dropId);
+                    } else {
+                        triggerInteraction(_exp.nearbyNode.dataset.type, _exp.nearbyNode.dataset.label, parseInt(_exp.nearbyNode.dataset.idx)); 
+                    }
                 } 
-                break; 
-            case 'escape': 
-                document.getElementById('exp-dialogue')?.remove(); 
-                document.getElementById('exp-workshop-panel')?.remove(); 
-                document.getElementById('exp-hidden-panel')?.remove(); 
-                _exp.isPaused = false; 
-                break; 
+                break;
+ 
             // ✅ 新增：按 V 键触发灵视模式
             case 'v': 
                 const expView = document.getElementById(EXP_VIEW_ID);
@@ -1239,7 +1241,17 @@ function _spawnRandomDrop(ecology) {
     });
 }
 
-function _collectDynamicDrop(el, itemName, dropId) {
+
+// 🦋 活物游荡 AI
+function _spawnCritter(cDef) {
+    const rx = Math.random() * WORLD_W;
+    const ry = Math.random() * WORLD_H;
+    const el = document.createElement('div');
+    el.className = 'ecfunction _collectDynamicDrop(el, itemName, dropId) {
+    // 🌟 修复：防止被瞬间按多次
+    if (el.style.pointerEvents === 'none') return;
+    el.style.pointerEvents = 'none';
+
     if(typeof playSound === 'function') playSound('collect');
     
     // 动态吸附反馈特效
@@ -1248,6 +1260,7 @@ function _collectDynamicDrop(el, itemName, dropId) {
     el.style.opacity = '0';
     el.style.filter = 'brightness(2) drop-shadow(0 0 20px white)';
 
+    // 彻底从地图上销毁该节点
     setTimeout(() => {
         el.remove();
         _exp.dynamicNodes = _exp.dynamicNodes.filter(id => id !== dropId);
@@ -1257,13 +1270,7 @@ function _collectDynamicDrop(el, itemName, dropId) {
     if(typeof addItem === 'function') addItem(itemName, qty);
     if(typeof showNotification === 'function') showNotification(`在路边拾取了【${itemName} ×${qty}】`, '✨');
 }
-
-// 🦋 活物游荡 AI
-function _spawnCritter(cDef) {
-    const rx = Math.random() * WORLD_W;
-    const ry = Math.random() * WORLD_H;
-    const el = document.createElement('div');
-    el.className = 'eco-critter';
+o-critter';
     el.innerHTML = cDef.icon;
     el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; filter:drop-shadow(0 5px 5px rgba(0,0,0,0.3)); transition: top 3s linear, left 3s linear, transform 0.3s; pointer-events:auto; cursor:pointer;`;
     
