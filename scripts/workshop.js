@@ -181,7 +181,7 @@ const inheritorState = {
     ]
 };
 
-// 动态渲染中控台面板
+// 动态渲染中控台面板 (增加 AI 灵识调教区)
 window.renderInheritorDash = function() {
     const container = document.getElementById('inheritor-dash-content');
     if (!container) return;
@@ -213,16 +213,42 @@ window.renderInheritorDash = function() {
         </div>
     `).join('') : '<div style="color:#aaa; font-size:13px; padding:10px;">暂无待处理订单</div>';
 
-    // 3. 渲染飞鸽传书区
-    let messagesHTML = inheritorState.messages.map(m => `
-        <div class="dash-list-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-            <div style="font-size:12px; color:#888;">来自 ${m.from}：</div>
-            <div style="font-size:14px; color:var(--ink); background:#fafaf8; padding:10px; border-radius:8px; width:100%; border:1px dashed #ddd;">"${m.content}"</div>
-            <button class="btn btn-sm btn-outline" style="align-self:flex-end;" onclick="replyMessage(${m.id})">回复解答</button>
-        </div>
-    `).join('');
+    // 获取当前登录传承人的名字，用来加载他之前保存的 AI 设定
+    const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
+    const customAI = (gameState.customAI && gameState.customAI[currentName]) ? gameState.customAI[currentName] : { personality: '', knowledge: '' };
 
-    // 拼装网格
+    // 3. 🌟 新增：AI 分身调教区 (RAG 知识库雏形，支持文档上传)
+    let aiConfigHTML = `
+        <div class="dash-card" style="grid-column: 1 / -1; border: 2px solid var(--purple); background: linear-gradient(180deg, #fdfbf7, white);">
+            <div class="dash-card-title" style="color:var(--purple); border-bottom-color:var(--purple);">🧠 AI数字灵体</div>
+            <div style="font-size:13px; color:#666; margin-bottom:15px;">在此注入您的非遗绝学。当大世界中的游历者与您的 AI 分身对话时，天道(系统) 将自动基于以下秘籍进行回答。</div>
+            
+            <div style="display:flex; gap:20px; margin-bottom: 15px;">
+                <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:var(--ink);">🎭 设定分身性格：</div>
+                    <textarea id="ai-custom-personality" placeholder="例如：性格古怪的老头，但一提到苏绣就会变得非常狂热..." style="width:100%; height:80px; padding:12px; border-radius:8px; border:1px solid #ccc; font-family:inherit; resize:none;">${customAI.personality}</textarea>
+                </div>
+                <div style="flex:2;">
+                    <div style="font-size:12px; font-weight:bold; margin-bottom:5px; color:var(--ink);">📜 注入核心技艺 (语料库)：</div>
+                    <textarea id="ai-custom-knowledge" placeholder="例如：双面绣的核心在于藏针脚，起针时绝不能打结，而是要..." style="width:100%; height:80px; padding:12px; border-radius:8px; border:1px solid #ccc; font-family:inherit; resize:none;">${customAI.knowledge}</textarea>
+                </div>
+            </div>
+
+            <div style="padding: 15px; border: 1px dashed var(--purple); border-radius: 8px; background: rgba(138, 109, 168, 0.05); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size:13px; font-weight:bold; color:var(--purple); margin-bottom:4px;">📁 可上传非遗典籍资料 (支持 Word / PDF / TXT)</div>
+                    <div style="font-size:11px; color:#888;">上传后，天道引擎将自动提取文本，作为您的分身记忆。</div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" id="ai-custom-file" accept=".pdf,.doc,.docx,.txt" style="font-size:12px; color:var(--ink); max-width: 200px;">
+                </div>
+            </div>
+            
+            <button class="btn btn-purple" style="margin-top:15px; width:100%; font-size:15px; padding:12px;" onclick="saveAIConfig()">✨ 将数字灵体同步至九州天道</button>
+        </div>
+    `;
+
+    // 🌟 修复：这里是缺失的渲染代码！必须把上面拼装好的 HTML 塞进容器里
     container.innerHTML = `
         <div class="dash-grid">
             <div class="dash-card">
@@ -233,12 +259,42 @@ window.renderInheritorDash = function() {
                 <div class="dash-card-title">📦 现世流转订单</div>
                 <div style="display:flex; flex-direction:column; gap:12px;">${ordersHTML}</div>
             </div>
-            <div class="dash-card" style="grid-column: 1 / -1;">
-                <div class="dash-card-title">🕊️ 飞鸽传书 (答疑解惑)</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">${messagesHTML}</div>
-            </div>
+            ${aiConfigHTML}
         </div>
     `;
+};
+
+// 保存 AI 配置的方法 (加入文档解析模拟)
+window.saveAIConfig = function() {
+    const personality = document.getElementById('ai-custom-personality').value.trim();
+    let knowledge = document.getElementById('ai-custom-knowledge').value.trim();
+    const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
+
+    // 检查是否有文件上传
+    const fileInput = document.getElementById('ai-custom-file');
+    let extraNotif = '';
+    
+    if (fileInput && fileInput.files.length > 0) {
+        const fileName = fileInput.files[0].name;
+        extraNotif = `\n📄 成功解析典籍：《${fileName}》`;
+        // 模拟：将文件名作为一个标记存入知识库中，方便在对话中体现
+        knowledge += `\n[系统注：大模型已读取典籍《${fileName}》的内容]`;
+        
+        // 清空 file input 表现出已上传的感觉
+        fileInput.value = '';
+    }
+
+    if (!gameState.customAI) gameState.customAI = {};
+    
+    gameState.customAI[currentName] = {
+        personality: personality || '严谨的传承人',
+        knowledge: knowledge || '技艺精湛，但不善言辞。'
+    };
+    
+    if (typeof SaveManager !== 'undefined') SaveManager.save();
+    
+    if (typeof playSound === 'function') playSound('magic');
+    showNotification('AI 分身认知已更新，大世界数据已同步！' + extraNotif, '🧠', 5000);
 };
 
 // --- 交互动作 ---

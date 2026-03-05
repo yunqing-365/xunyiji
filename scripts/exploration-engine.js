@@ -503,26 +503,40 @@ window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorD
             textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span style="color:var(--jade);" class="anim-blink">正在跨越时空沟通天道法则 (AI思考中)...</span>`;
             
             try {
-                // 提取角色设定，发给你的本地服务器
                 const role = isInheritor ? inheritorDataRef.title : (nodeData?.data?.role || '九州居民');
                 const intimacy = (gameState.intimacy && gameState.intimacy[speaker]) ? gameState.intimacy[speaker] : 0;
+                const npcType = isInheritor ? 'inheritor' : 'normal';
                 
-                // 📡 向刚才搭建的 Node.js 服务器发起请求
+                // 🌟 读取玩家在匠师端调教的私有数据
+                const customAIData = (gameState.customAI && gameState.customAI[speaker]) ? gameState.customAI[speaker] : null;
+
+                const personality = customAIData 
+                    ? customAIData.personality 
+                    : (isInheritor ? inheritorDataRef.aiAvatar.personality : (nodeData?.data?.aiPersonality || '普通的九州居民'));
+                
+                const knowledgeBase = customAIData
+                    ? { craft: customAIData.knowledge } 
+                    : (isInheritor ? inheritorDataRef.aiAvatar.knowledge : null);
+
+                // 📡 向 Node.js 服务器发起请求
                 const response = await fetch('http://localhost:3000/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         npcName: speaker,
                         npcRole: role,
+                        npcType: npcType,
+                        personality: personality || '平静', // 防崩溃兜底
+                        knowledgeBase: knowledgeBase || {}, // 防崩溃兜底
                         userMessage: msg,
                         intimacy: intimacy
                     })
                 });
                 
-                if (!response.ok) throw new Error('网络请求失败');
+                if (!response.ok) throw new Error('服务器返回错误状态');
                 const result = await response.json();
                 
-                // 打字机特效输出 DeepSeek 的回复
+                // 打字机特效输出回复
                 textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br>`;
                 const replySpan = document.createElement('span');
                 replySpan.id = 'ai-reply-text';
@@ -534,17 +548,17 @@ window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorD
                     sendBtn.disabled = false;
                     sendBtn.innerText = '发送';
                     inputEl.focus();
-                    
-                    // 恢复告辞按钮
                     optContainer.innerHTML = `<button class="btn btn-outline" style="border-color:var(--cinnabar); color:var(--cinnabar); border-radius: 6px;" onclick="document.getElementById('exp-dialogue').style.animation='slideDownOut 0.3s ease forwards'; setTimeout(() => { document.getElementById('exp-dialogue').remove(); _exp.isPaused = false; }, 300);">👋 暂且告辞</button>`;
                 });
                 
             } catch (error) {
-                console.error(error);
-                textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span style="color:var(--cinnabar);">（与天道连接中断，${speaker} 仿佛陷入了呆滞...请确保终端里的 node server.js 正在运行）</span>`;
+                console.error("前端请求报错:", error);
+                // 🌟 核心修复：这里绝对不能省略！当报错时必须把 UI 恢复，否则就会永远卡在“沟通天道”
+                textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span style="color:var(--cinnabar);">（天道连接中断，${speaker} 陷入了沉思... 请检查终端中的 node server.js 是否报错）</span>`;
                 inputEl.disabled = false;
                 sendBtn.disabled = false;
                 sendBtn.innerText = '重试';
+                optContainer.innerHTML = `<button class="btn btn-outline" style="border-color:var(--cinnabar); color:var(--cinnabar); border-radius: 6px;" onclick="document.getElementById('exp-dialogue').style.animation='slideDownOut 0.3s ease forwards'; setTimeout(() => { document.getElementById('exp-dialogue').remove(); _exp.isPaused = false; }, 300);">👋 暂且告辞</button>`;
             }
         };
 

@@ -105,7 +105,7 @@ const gameState = {
     }
 };
 
-
+SaveManager.load();
 // ============================================================
 // 三、工具函数
 // ============================================================
@@ -2207,12 +2207,6 @@ const WorldTimeEngine = {
         // 同步探索地图的光影
         if (typeof updateWorldEcology === 'function') {
             updateWorldEcology(ws, state.id);
-        }
-    }
-
-        // 同步探索地图的光影
-        if (typeof updateWorldEcology === 'function') {
-            updateWorldEcology(gameState.worldState, state.id);
         }
     }
 };
