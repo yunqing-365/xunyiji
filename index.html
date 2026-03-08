@@ -59,6 +59,27 @@
         <div class="header-left">
             <div class="header-logo" style="margin-right: 20px;">寻遗集</div>
             <div id="player-stats" class="stats">
+
+                <div class="header-left">
+            <div class="header-logo" style="margin-right: 20px;">寻遗集</div>
+            
+            <div id="player-stats" class="stats">
+                <div class="avatar avatar-sm" style="font-size:18px;">🧭</div>
+                <div class="flex-col">
+                    <span id="display-player-name" class="player-name-tag" style="color:var(--ink); font-weight:normal; margin-left: 6px;">1</span>
+                    <span class="text-small text-sub" style="margin-left: 6px; font-size: 11px;">Lv.1 初入江湖</span>
+                </div>
+            </div>
+
+            <div id="inheritor-stats" class="stats hidden">
+                <div class="avatar avatar-sm avatar-cinnabar" style="border-color:var(--cinnabar); font-size:18px;">🧑‍🎨</div>
+                <div class="flex-col">
+                    <span id="display-inheritor-name" class="inheritor-name-tag" style="color:var(--cinnabar); font-weight:bold; margin-left: 6px;">未知匠师</span>
+                    <span class="text-small text-sub" style="margin-left: 6px; font-size: 11px;">非遗大宗师</span>
+                </div>
+            </div>
+            </div>
+            
                 <div class="avatar avatar-sm" style="font-size:18px;">🧭</div>
                 <div class="flex-col">
                     <span id="display-player-name" class="player-name-tag" style="color:var(--ink); font-weight:normal; margin-left: 6px;">1</span>
@@ -233,28 +254,12 @@ onclick="enterScene('senzhidiyu')">
         <div id="view-inheritor-dash" class="view-container system-layout">
             <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>⚙️ 匠师中控台 <span class="subtitle" style="margin-left:10px; font-size:14px; color:#888;">经营工坊，点拨门徒，流转现世</span></div>
-                <button class="btn btn-sm btn-jade" onclick="openPublishModal()">➕ 发布新造物图纸</button>
             </div>
             
             <div class="inheritor-dashboard" id="inheritor-dash-content">
                 </div>
         </div>
 
-        <div id="publish-blueprint-modal" class="modal">
-            <div class="modal-header modal-header-gold">
-                <h3>📜 撰写新图纸</h3>
-                <button class="modal-close" onclick="closeModal('publish-blueprint-modal')">×</button>
-            </div>
-            <div class="modal-content" style="padding: 24px;">
-                <p style="font-size: 13px; color: #666; margin-bottom: 20px;">发布后，游历者即可在“天工造物台”中解锁该配方。</p>
-                <input type="text" id="bp-name" placeholder="造物名称 (如：青花缠枝莲纹瓶)" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px;">
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <input type="text" id="bp-mat1" placeholder="所需材料1 (如：高岭陶土)" style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
-                    <input type="number" id="bp-num1" placeholder="数量" style="width: 80px; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
-                </div>
-                <button class="btn btn-gold btn-full" onclick="submitBlueprint()">注入匠心 · 发布图纸</button>
-            </div>
-        </div>
 
         <div id="view-workshop" class="view-container system-layout">
             <div class="section-title">
