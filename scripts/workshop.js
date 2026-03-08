@@ -73,13 +73,12 @@ function openInheritorStory(id) {
 }
 
 // ============================================================
-// 七、传承人 (匠师) 中控台动态逻辑 (真·沉浸式 O2O 驻地版)
+// 二、传承人中控台 (B端匠师看的部分)
 // ============================================================
 
-// 模拟数据库：新增了精确的 pos 坐标系
 const inheritorState = {
     region: 'baizuozhen',
-    pos: { x: 1200, y: 800 }, // 🌟 默认的精确坐标 (X, Y)
+    pos: { x: 1200, y: 800 }, 
     pigeonMails: [
         { id: 1, from: '游历者·星渊', content: '师傅，您昨天发布的残谱太难了，我跑遍了青岚界都没找到晨露，能给点提示吗？', status: 'unread' }
     ],
@@ -87,7 +86,8 @@ const inheritorState = {
         { id: 101, playerName: '云客', taskName: '门派历练', itemName: '青釉茶盏', desc: '弟子按图索骥烧制出此盏，请师傅品鉴赐字。' }
     ],
     o2oListings: [
-        { id: 201, type: '实体', name: '大师亲制·西施紫砂壶', stock: 2, price: '800灵石' }
+        { id: 201, type: '实体', name: '大师亲制·西施紫砂壶', stock: 2, price: '800灵石' },
+        { id: 204, type: '线上', name: '【录播】十二生肖剪纸技法精讲', stock: 999, price: '50灵石' }
     ],
     publishedQuests: [],
     orders: []
@@ -105,20 +105,18 @@ function _generateItemOptions(filterType = 'all') {
     return options;
 }
 
-// 🌟 核心提取：将数据同步给 C 端（大世界）
 function _syncGlobalInheritorData() {
     const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
     if (typeof gameState !== 'undefined') {
         if (!gameState.globalInheritorData) gameState.globalInheritorData = {};
         if (!gameState.globalInheritorData[currentName]) gameState.globalInheritorData[currentName] = {};
         gameState.globalInheritorData[currentName].region = inheritorState.region;
-        gameState.globalInheritorData[currentName].pos = inheritorState.pos; // 🌟 存入精确坐标
+        gameState.globalInheritorData[currentName].pos = inheritorState.pos; 
         gameState.globalInheritorData[currentName].quests = inheritorState.publishedQuests;
         if (typeof SaveManager !== 'undefined') SaveManager.save();
     }
 }
 
-// 注入原生 UI 弹窗
 function _ensureInheritorModals() {
     if (document.getElementById('modal-reply-mail')) return;
 
@@ -146,7 +144,7 @@ function _ensureInheritorModals() {
                 <button class="modal-close" onclick="closeModal('modal-publish-quest')">×</button>
             </div>
             <div class="modal-content" style="padding: 30px;">
-                <p style="font-size:13px; color:#666; margin-bottom:20px; line-height:1.6;">拟定后，任务将挂载到您驻地的化身(NPC)上。玩家须亲自探索找到您，并在对话中接取此悬赏。</p>
+                <p style="font-size:13px; color:#666; margin-bottom:20px; line-height:1.6;">拟定后，任务将挂载到您驻地的化身(NPC)上。玩家须亲自探索找到您才能接取此悬赏。</p>
                 <div style="margin-bottom:20px;">
                     <label style="font-size:13px; color:var(--ink); font-weight:bold;">任务卷轴名称：</label>
                     <input type="text" id="quest-name" placeholder="例如：寻梦冰裂纹" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; outline:none; margin-top:8px; font-size:14px;">
@@ -211,7 +209,6 @@ function _ensureInheritorModals() {
     document.body.insertAdjacentHTML('beforeend', modalsHTML);
 }
 
-// 驻地更新
 window.updateInheritorRegion = function(regionKey) {
     inheritorState.region = regionKey;
     _syncGlobalInheritorData();
@@ -219,20 +216,17 @@ window.updateInheritorRegion = function(regionKey) {
     if (typeof playSound === 'function') playSound('click');
 };
 
-// 🌟 新增：在微缩地图上点击，获取精准坐标
 window.pickInheritorLocation = function(event) {
     const rect = event.currentTarget.getBoundingClientRect();
     const pctX = (event.clientX - rect.left) / rect.width;
     const pctY = (event.clientY - rect.top) / rect.height;
 
-    // 映射到大世界真实坐标 (假设世界平均宽 2800，高 1800)
     const mapW = 2800, mapH = 1800;
     const realX = Math.floor(pctX * mapW);
     const realY = Math.floor(pctY * mapH);
 
     inheritorState.pos = { x: realX, y: realY };
 
-    // 移动 UI 上的图钉
     const pin = document.getElementById('inh-map-pin');
     if (pin) {
         pin.style.left = (pctX * 100) + '%';
@@ -253,7 +247,6 @@ window.renderInheritorDash = function() {
     _ensureInheritorModals();
     _syncGlobalInheritorData();
 
-    // ── 🌟 新增：14区全覆盖 + 微缩地图精准选点 UI ──
     let locationHTML = `
         <div class="dash-card" style="grid-column: 1 / -1; background: linear-gradient(to right, #fdfaf4, white); border-left: 5px solid var(--amber);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
@@ -291,11 +284,6 @@ window.renderInheritorDash = function() {
         </div>
     `;
 
-    // 后续拼接 mailsHTML, tasksHTML, o2oHTML, aiConfigHTML 的代码保持不变... (只需把 locationHTML 拼进 dash-grid 开头即可)
-    // （你刚才的代码中已有的这部分无需修改）
-    // ...
-
-    // 原有的面板渲染
     let mailsHTML = inheritorState.pigeonMails.map(m => `
         <div class="dash-list-item" style="border-left: 3px solid ${m.status==='unread' ? 'var(--cinnabar)' : '#ccc'}; flex-direction:column; align-items:flex-start; gap:10px;">
             <div style="width:100%;"><div style="font-weight:bold; font-size:13px; color:var(--ink);">🕊️ 来自：${m.from}</div><div style="font-size:12px; color:#666; margin-top:6px;">"${m.content}"</div></div>
@@ -322,9 +310,9 @@ window.renderInheritorDash = function() {
         let bg = {'实体':'#fde8e8','线下':'#e8f4ef','线上':'#e6f0fa','藏品':'#f0ebf6'}[listing.type] || '#eee';
         return `<div class="dash-list-item" style="padding:12px 15px;"><div style="display:flex; gap:10px; align-items:center;"><span style="font-size:11px; font-weight:bold; padding:4px 8px; border-radius:4px; background:${bg}; color:${c};">${listing.type}</span><div><div style="font-weight:bold; font-size:13px; color:var(--ink);">${listing.name}</div><div style="font-size:11px; color:#888; margin-top:5px;">库存: ${listing.stock} | 售价: ${listing.price}</div></div></div></div>`;
     }).join('');
-
-    // ➕ 新增这一行，获取当前匠师的名字
-    currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
+    
+    // 🌟 核心修复 1：变量名修正，避免 ReferenceError 崩溃
+    const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
 
     const customAI = (gameState.customAI && gameState.customAI[currentName]) ? gameState.customAI[currentName] : { personality: '', knowledge: '' };
     let aiConfigHTML = `
@@ -359,19 +347,10 @@ window.renderInheritorDash = function() {
     `;
 };
 
-// 驻地更新
-window.updateInheritorRegion = function(regionKey) {
-    inheritorState.region = regionKey;
-    const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
-    if (gameState.globalInheritorData && gameState.globalInheritorData[currentName]) {
-        gameState.globalInheritorData[currentName].region = regionKey;
-        if (typeof SaveManager !== 'undefined') SaveManager.save();
-    }
-    showNotification('门派驻地已迁移，大世界地图已实时更新！', '📍');
-    if (typeof playSound === 'function') playSound('magic');
-};
+// ============================================================
+// 三、交互逻辑
+// ============================================================
 
-// B 端交互动作
 window.openReplyMail = function(mailId, playerName) {
     const mail = inheritorState.pigeonMails.find(m => m.id === mailId);
     document.getElementById('reply-mail-id').value = mailId;
@@ -402,7 +381,6 @@ window.submitReplyMail = function() {
     renderInheritorDash(); 
 };
 
-// 🌟 核心修改：发布残谱时，不再强塞入玩家任务面板，而是挂在自身的属性里！
 window.submitPublishQuest = function() {
     const name = document.getElementById('quest-name').value.trim();
     const mat1 = document.getElementById('quest-mat-1').value;
@@ -410,32 +388,16 @@ window.submitPublishQuest = function() {
 
     if (!name || !mat1 || !mat2) { showNotification('请完整填写残谱与所需材料', '⚠️'); return; }
 
-    const newQuest = {
-        id: 'custom_quest_' + Date.now(),
-        name: name,
-        mat1: mat1,
-        mat2: mat2
-    };
-
-    // 挂载到匠师自身数据中
+    const newQuest = { id: 'custom_quest_' + Date.now(), name: name, mat1: mat1, mat2: mat2 };
     inheritorState.publishedQuests.push(newQuest);
-    
-    // 同步到全局状态供 C 端读取
-    const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
-    if (typeof gameState !== 'undefined') {
-        if (!gameState.globalInheritorData) gameState.globalInheritorData = {};
-        if (!gameState.globalInheritorData[currentName]) gameState.globalInheritorData[currentName] = {};
-        gameState.globalInheritorData[currentName].quests = inheritorState.publishedQuests;
-        if (typeof SaveManager !== 'undefined') SaveManager.save();
-    }
+    _syncGlobalInheritorData();
 
     showNotification(`残谱《${name}》已挂载至您的化身，等待有缘人拜访领取！`, '📜', 5000);
     if(typeof playSound === 'function') playSound('achievement');
     closeModal('modal-publish-quest');
-    renderInheritorDash(); // 刷新面板显示数量
+    renderInheritorDash(); 
 };
 
-// 开光赐字
 window.openConsecrate = function(submitId, playerName, itemName) {
     document.getElementById('consecrate-id').value = submitId;
     document.getElementById('consecrate-item-name').innerText = itemName;
@@ -460,7 +422,7 @@ window.submitConsecrate = function() {
         itemDatabase[newItemName] = {
             icon: baseData.icon, type: 'rare', rarity: 5,
             desc: `得匠师赐字开光，已化为绝品。`,
-            echo: `“吾徒心诚，特赐此名。” —— 传承人亲笔`,
+            echo: `“吾徒心诚，特赐此名。”`,
             usable: true, actionName: '前往化身纪佩戴'
         };
         if (typeof addItem === 'function') addItem(newItemName, 1);
@@ -472,7 +434,6 @@ window.submitConsecrate = function() {
     renderInheritorDash();
 };
 
-// O2O商品上架
 window.submitAddO2O = function() {
     const type = document.getElementById('o2o-type').value;
     const name = document.getElementById('o2o-name').value.trim();
@@ -496,7 +457,6 @@ window.submitAddO2O = function() {
     renderInheritorDash();
 };
 
-// 保持不变
 window.shipOrder = function(id) {
     const o = inheritorState.orders.find(x => x.id === id);
     if (!o) return;
@@ -509,6 +469,65 @@ window.shipOrder = function(id) {
 // ============================================================
 // 四、AI与区块链引擎 (带完整防错)
 // ============================================================
+
+// 🌟 补全丢失的上链历史查看功能
+window.openWeb3Console = function(inheritorName = "未知匠师") {
+    document.getElementById('web3-console')?.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'web3-console';
+    panel.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:600px; height:450px; background:linear-gradient(135deg, rgba(20,20,30,0.98), rgba(10,10,15,0.98)); border:1px solid var(--gold); border-radius:12px; box-shadow: 0 0 30px rgba(212,175,55,0.2), inset 0 0 15px rgba(212,175,55,0.1); z-index:3000; color:#e8dcc8; display:flex; flex-direction:column; overflow:hidden;`;
+
+    panel.innerHTML = `
+        <div style="padding:20px 30px; border-bottom:1px solid rgba(212,175,55,0.3); display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3);">
+            <div style="display:flex; gap:20px;">
+                <button id="tab-history" style="background:none; border:none; color:var(--gold); font-size:18px; font-weight:bold; cursor:pointer; padding-bottom:5px; border-bottom:2px solid var(--gold);">📜 链上确权资产历史</button>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:#aaa; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        <div id="panel-history" style="padding:30px; flex:1; overflow-y:auto;">
+            <div id="history-loading" style="text-align:center; color:var(--gold); padding:40px;">
+                <div class="anim-blink">🔄 正在与区块链节点同步数据...</div>
+            </div>
+            <div id="history-list" style="display:flex; flex-direction:column; gap:15px;"></div>
+        </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    const loadHistory = async () => {
+        const listDiv = document.getElementById('history-list');
+        const loadingDiv = document.getElementById('history-loading');
+        try {
+            const response = await fetch(`http://localhost:3000/api/knowledge-history?inheritorName=${encodeURIComponent(inheritorName)}`);
+            const data = await response.json();
+            loadingDiv.style.display = 'none';
+
+            if (!data.success) throw new Error(data.error);
+            if (data.history.length === 0) {
+                listDiv.innerHTML = `<div style="text-align:center; color:#888; padding:30px;">暂无上链的确权资产。</div>`;
+                return;
+            }
+
+            data.history.forEach(item => {
+                const dateStr = new Date(item.timestamp).toLocaleString();
+                const card = document.createElement('div');
+                card.style.cssText = `background:rgba(255,255,255,0.03); border:1px solid rgba(212,175,55,0.2); border-radius:8px; padding:15px; position:relative;`;
+                card.innerHTML = `
+                    <div style="position:absolute; top:0; right:0; background:rgba(212,175,55,0.2); color:var(--gold); padding:2px 10px; font-size:11px; border-bottom-left-radius:8px;">已确权</div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;"><span style="font-size:20px;">📄</span><span style="font-weight:bold; color:#e8dcc8; font-size:15px;">${item.fileName}</span></div>
+                    <div style="font-size:12px; color:#aaa; margin-bottom:6px;"><span style="color:#888;">确权时间：</span>${dateStr}</div>
+                    <div style="font-size:11px; color:#aaa; word-break:break-all; background:rgba(0,0,0,0.4); padding:8px; border-radius:4px; font-family:monospace;"><span style="color:#888;">文件数字指纹 (Hash):</span><br>${item.documentHash}</div>
+                `;
+                listDiv.appendChild(card);
+            });
+        } catch (err) {
+            loadingDiv.innerHTML = `<span style="color:#ff4444;">❌ 拉取失败: 请确保 Node 服务器已启动</span>`;
+        }
+    };
+    loadHistory();
+};
+
 window.syncSoulAndChain = async function() {
     try {
         const currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';

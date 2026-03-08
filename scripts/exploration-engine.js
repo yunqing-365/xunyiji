@@ -391,11 +391,11 @@ function _typewrite(elId, text, speed, onDone) {
     }, speed);
 }
 
-// 在 scripts/exploration-engine.js 中替换 _startDynamicDialogue
+// ── 修复替换：大世界NPC与AI对话渲染引擎 ──
 window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorDataRef, nodeData) {
     if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('talk_npc', 1);
-    
     document.getElementById('exp-dialogue')?.remove();
+    
     const panel = document.createElement('div'); 
     panel.id = 'exp-dialogue';
     panel.style.cssText = `position:fixed; bottom:0; left:0; width:100%; z-index:2000; background:linear-gradient(to top, rgba(20,16,12,0.97), rgba(30,24,18,0.92)); border-top:2px solid rgba(212,175,55,0.4); padding:24px 40px 28px; backdrop-filter:blur(10px); animation: slideUpIn 0.35s ease;`;
@@ -403,81 +403,55 @@ window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorD
 
     const renderState = (state, ctx = {}) => {
         let text = ''; let options = [];
+        let isDynamicInh = isInheritor || (nodeData && nodeData.data && nodeData.data.isDynamicInheritor);
+        let isAIAvatar = isDynamicInh || (nodeData && nodeData.data && nodeData.data.isAI);
         
         if (state === 'GREET') {
-            // 🌟 核心打通：处理与匠师的“初次结识”和“领取残谱”
-            let isDynamicInh = isInheritor || (nodeData && nodeData.data && nodeData.data.isDynamicInheritor);
-            
             if (isDynamicInh) {
-                // 1. 初次见面结识逻辑
-                if (!gameState.unlockedInheritors) gameState.unlockedInheritors = [];
-                if (!gameState.unlockedInheritors.includes(speaker)) {
-                    gameState.unlockedInheritors.push(speaker);
-                    if (typeof showNotification === 'function') {
-                        showNotification(`相遇即是缘，成功结识了【${speaker}】！现已开启飞鸽传书。`, '🤝', 5000);
-                        if (typeof playSound === 'function') playSound('achievement');
-                    }
-                }
-
                 text = (inheritorDataRef && inheritorDataRef.aiAvatar) ? inheritorDataRef.aiAvatar.greeting : `“相逢何必曾相识，游历者，你来我这驻地，可是为了寻道？”`;
                 
-                // 2. 读取 B 端发布的残谱任务
+                // 动态拉取匠人发布的残谱
                 const bSideData = gameState.globalInheritorData && gameState.globalInheritorData[speaker];
                 if (bSideData && bSideData.quests && bSideData.quests.length > 0) {
                     bSideData.quests.forEach(q => {
-                        // 检查玩家是否已经领过这个任务
-                        if (gameState.quests && gameState.quests.side) {
-                            const hasQuest = gameState.quests.side.find(pq => pq.id === q.id);
-                            if (!hasQuest) {
-                                // 提供接任务的专属选项
-                                options.push({ text: `❗ 呈请指教：领取《${q.name}》`, next: 'ACCEPT_QUEST', ctx: { quest: q } });
-                            }
+                        if (gameState.quests && gameState.quests.side && !gameState.quests.side.find(pq => pq.id === q.id)) {
+                            options.push({ text: `❗ 呈请指教：领取《${q.name}》`, next: 'ACCEPT_QUEST', ctx: { quest: q } });
                         }
                     });
                 }
-
                 options.push({ text: '📖 请教非遗学问', next: 'TEACH_MENU' });
                 options.push({ text: '🎁 奉上行囊灵物', next: 'GIFT_MENU' });
-                
-            } else if (nodeData && nodeData.data && nodeData.data.dialog && nodeData.data.dialog.length > 0) {
+            } else if (nodeData?.data?.dialog?.length > 0) {
                 text = nodeData.data.dialog[0].text;
-                (nodeData.data.dialog[0].options || []).forEach(opt => {
-                    const optText = typeof opt === 'string' ? opt : opt.text;
-                    const funcStr = typeof opt === 'string' ? null : opt.func;
-                    options.push({ text: `💬 ${optText}`, next: 'CUSTOM_TALK', func: funcStr, ctx: { msg: optText } });
-                });
+                (nodeData.data.dialog[0].options || []).forEach(opt => options.push({ text: `💬 ${opt.text || opt}`, next: 'CUSTOM_TALK' }));
             } else { text = `"哟，来了位游侠儿！好好探索吧。"`; }
-            
             options.push({ text: '👋 暂且告辞', next: 'LEAVE' });
         }
         else if (state === 'ACCEPT_QUEST') {
             const q = ctx.quest;
-            text = `"孺子可教！我这有一份残卷《${q.name}》，正需【${q.mat1}】与【${q.mat2}】作引。你若能寻来交予我，我便亲自为你开光。"`;
-            
-            // 真实写入玩家任务系统！
+            text = `"孺子可教！我这有一份残卷《${q.name}》，正需【${q.mat1}】与【${q.mat2}】作引。你若能寻来，我便亲自为你开光。"`;
             if (!gameState.quests.side) gameState.quests.side = [];
             gameState.quests.side.unshift({
                 id: q.id, title: `[师门历练] ${q.name}`, type: 'side', icon: '📜',
                 desc: `前往大世界搜集【${q.mat1}】与【${q.mat2}】，完成后等待匠师品鉴开光。`,
-                objectives: [ 
+                objectives: [
                     { id: 'o1', text: `搜集 ${q.mat1}`, required: 3, current: 0, event: 'collect_item' }, 
-                    { id: 'o2', text: `搜集 ${q.mat2}`, required: 3, current: 0, event: 'collect_item' } 
+                    { id: 'o2', text: `搜集 ${q.mat2}`, required: 3, current: 0, event: 'collect_item' }
                 ],
                 status: 'active', reward: { stones: 800, items: [] }
             });
             if (typeof SaveManager !== 'undefined') SaveManager.save();
             if (typeof renderQuestPanel !== 'undefined') renderQuestPanel('side');
-
             options.push({ text: '🙏 弟子定不辱命！', next: 'LEAVE' });
         }
         else if (state === 'CUSTOM_TALK') {
-            text = `"哈哈，有意思！相逢即是缘，这九州奇闻，咱们日后再细细详聊。"`;
+            text = `"哈哈，有意思！相逢即是缘，这九州奇闻，咱们日后再聊。"`;
             options.push({ text: '🙏 多谢指教', next: 'GREET' });
         }
         else if (state === 'TEACH_MENU') {
-            text = `"九州技艺，浩如烟海。你想了解什么？"`;
-            if (inheritorDataRef && inheritorDataRef.aiAvatar) {
-                const kn = inheritorDataRef.aiAvatar.knowledge;
+            text = `"你想了解什么？"`;
+            const kn = inheritorDataRef?.aiAvatar?.knowledge;
+            if(kn) {
                 if(kn.history) options.push({ text: '📜 历史渊源', next: 'TEACH_DETAIL', ctx: { content: kn.history } });
                 if(kn.material) options.push({ text: '🌿 原材挑选', next: 'TEACH_DETAIL', ctx: { content: kn.material } });
                 if(kn.craft) options.push({ text: '⚒️ 核心技艺', next: 'TEACH_DETAIL', ctx: { content: kn.craft } });
@@ -490,46 +464,38 @@ window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorD
         else if (state === 'GIFT_MENU') {
             text = `"哦？你要送老夫礼物？"`;
             let hasItem = false;
-            if (gameState.inventory) {
-                for (let itemName in gameState.inventory) {
-                    if (gameState.inventory[itemName] > 0) {
-                        hasItem = true;
-                        options.push({ text: `🎁 送出【${itemName}】`, next: 'GIFT_RESULT', ctx: { itemName: itemName } });
-                    }
+            for (let itemName in gameState.inventory) {
+                if (gameState.inventory[itemName] > 0) {
+                    hasItem = true; options.push({ text: `🎁 送出【${itemName}】`, next: 'GIFT_RESULT', ctx: { itemName } });
                 }
             }
             if (!hasItem) text = `(行囊空空如也...)`;
             options.push({ text: '↩️ 算了', next: 'GREET' });
         }
         else if (state === 'GIFT_RESULT') {
-            const item = ctx.itemName;
-            gameState.inventory[item]--;
+            gameState.inventory[ctx.itemName]--;
             if (typeof updateInventory === 'function') updateInventory();
-            gameState.intimacy[speaker] = (gameState.intimacy[speaker] || 0) + 20;
-            text = `"哎呀，这【${item}】可是好东西！多谢小友！"\n<span style="color:var(--jade); font-size:12px;">(羁绊 +20)</span>`;
+            text = `"哎呀，这【${ctx.itemName}】可是好东西！多谢小友！"`;
             options.push({ text: '🙏 不客气', next: 'GREET' });
         }
-
-        if (state === 'LEAVE') {
+        else if (state === 'LEAVE') {
             panel.style.animation = 'slideDownOut 0.3s ease forwards';
             setTimeout(() => { panel.remove(); _exp.isPaused = false; }, 300); return;
         }
 
+        // 注入 AI 输入框与丝滑 UI
         panel.innerHTML = `
             <div style="display:flex; gap:20px; align-items:flex-start; max-width:900px; margin:0 auto;">
-                <div style="width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid ${(isInheritor || nodeData?.data?.isDynamicInheritor) ? 'var(--cinnabar)' : 'var(--gold)'}; display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; box-shadow: 0 0 15px rgba(212,175,55,0.2);">
-                    ${avatar}
-                </div>
+                <div style="width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid ${isAIAvatar ? 'var(--gold)' : '#aaa'}; display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0;">${avatar}</div>
                 <div style="flex:1;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                        <span style="color:var(--amber); font-weight:bold; font-size:16px;">${speaker}</span>
-                    </div>
-                    
-                    <div id="exp-dlg-text" style="color:#e8dcc8; font-size:15px; line-height:1.8; min-height:48px; margin-bottom:18px;">
-                        ${text.replace(/\n/g, '<br>')}
-                    </div>
-                    
+                    <div style="margin-bottom:10px;"><span style="color:var(--amber); font-weight:bold; font-size:16px;">${speaker}</span> ${isAIAvatar ? `<span style="color:var(--jade); font-size:11px; border:1px solid var(--jade); padding:2px 8px; border-radius:12px;">✨ AI 灵识驱动</span>` : ''}</div>
+                    <div id="exp-dlg-text" style="color:#e8dcc8; font-size:15px; line-height:1.8; min-height:48px; margin-bottom:18px;">${text.replace(/\n/g, '<br>')}</div>
                     <div id="exp-dlg-options" style="display:flex; gap:12px; flex-wrap:wrap;"></div>
+                    ${isAIAvatar ? `
+                    <div id="exp-ai-input-area" style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 15px;">
+                        <input type="text" id="ai-chat-input" placeholder="与 ${speaker} 自由交谈... (按Enter发送)" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(212,175,55,0.4); color:#fff; padding:10px 15px; border-radius:8px; outline:none; font-family:inherit; font-size:14px;">
+                        <button id="ai-chat-send" class="btn btn-gold" style="padding: 0 24px; font-weight:bold;">发送</button>
+                    </div>` : ''}
                 </div>
             </div>`;
 
@@ -539,16 +505,49 @@ window._startDynamicDialogue = function(speaker, avatar, isInheritor, inheritorD
             btn.className = 'btn btn-outline'; 
             btn.style.cssText = `color:${opt.next==='ACCEPT_QUEST'?'var(--gold)':'#e8dcc8'}; border-color:${opt.next==='ACCEPT_QUEST'?'var(--gold)':'rgba(232,220,200,0.3)'}; font-size:13px; padding:8px 16px; background: rgba(0,0,0,0.3); cursor:pointer; border-radius: 6px; font-weight:${opt.next==='ACCEPT_QUEST'?'bold':'normal'};`; 
             btn.innerText = opt.text; 
-            btn.onmouseover = () => { btn.style.background = 'var(--jade)'; btn.style.borderColor = 'var(--jade)'; btn.style.color = 'white'; };
-            btn.onmouseout = () => { btn.style.background = 'rgba(0,0,0,0.3)'; btn.style.borderColor = opt.next==='ACCEPT_QUEST'?'var(--gold)':'rgba(232,220,200,0.3)'; btn.style.color = opt.next==='ACCEPT_QUEST'?'var(--gold)':'#e8dcc8'; };
-            btn.onclick = () => {
-                if (opt.func) { try { eval(opt.func); } catch(e) {} }
-                renderState(opt.next, opt.ctx); 
-            };
+            btn.onclick = () => renderState(opt.next, opt.ctx); 
             optContainer.appendChild(btn); 
         });
+
+        // 真·AI 后端调用逻辑
+        if (isAIAvatar) {
+            const sendBtn = document.getElementById('ai-chat-send');
+            const inputEl = document.getElementById('ai-chat-input');
+            const handleSendChat = async () => {
+                const msg = inputEl.value.trim(); if (!msg) return;
+                optContainer.innerHTML = ''; inputEl.disabled = true; sendBtn.disabled = true; sendBtn.innerText = '凝神...';
+                const textEl = document.getElementById('exp-dlg-text');
+                textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span style="color:var(--jade);" class="anim-blink">正在跨越时空沟通天道法则 (AI思考中)...</span>`;
+                
+                try {
+                    const role = isInheritor ? inheritorDataRef.title : (nodeData?.data?.role || '九州居民');
+                    const customAI = gameState.customAI && gameState.customAI[speaker];
+                    const personality = customAI ? customAI.personality : (isInheritor ? inheritorDataRef.aiAvatar.personality : (nodeData?.data?.aiPersonality || '平静'));
+                    const knBase = customAI ? { craft: customAI.knowledge } : (isInheritor ? inheritorDataRef.aiAvatar.knowledge : {});
+
+                    const response = await fetch('http://localhost:3000/api/chat', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ npcName: speaker, npcRole: role, npcType: isInheritor?'inheritor':'npc', personality, knowledgeBase: knBase, userMessage: msg })
+                    });
+                    
+                    if (!response.ok) throw new Error('服务器返回错误状态');
+                    const result = await response.json();
+                    
+                    textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span id="ai-reply-text" style="color:var(--gold);"></span>`;
+                    _typewrite('ai-reply-text', result.reply, 35, () => {
+                        inputEl.value = ''; inputEl.disabled = false; sendBtn.disabled = false; sendBtn.innerText = '发送';
+                        optContainer.innerHTML = `<button class="btn btn-outline" style="border-color:var(--cinnabar); color:var(--cinnabar); border-radius: 6px;" onclick="document.getElementById('exp-dialogue').style.animation='slideDownOut 0.3s ease forwards'; setTimeout(() => { document.getElementById('exp-dialogue').remove(); _exp.isPaused = false; }, 300);">👋 暂且告辞</button>`;
+                    });
+                } catch (error) {
+                    textEl.innerHTML = `<span style="color:#aaa; font-size:13px;">你：${msg}</span><br><br><span style="color:var(--cinnabar);">（天道连接中断，请检查 Node 服务器是否启动）</span>`;
+                    inputEl.disabled = false; sendBtn.disabled = false; sendBtn.innerText = '重试';
+                    optContainer.innerHTML = `<button class="btn btn-outline" style="border-color:var(--cinnabar); color:var(--cinnabar); border-radius: 6px;" onclick="document.getElementById('exp-dialogue').style.animation='slideDownOut 0.3s ease forwards'; setTimeout(() => { document.getElementById('exp-dialogue').remove(); _exp.isPaused = false; }, 300);">👋 暂且告辞</button>`;
+                }
+            };
+            sendBtn.onclick = handleSendChat;
+            inputEl.onkeydown = (e) => { if (e.key === 'Enter') handleSendChat(); };
+        }
     };
-    
     renderState('GREET');
 };
 
