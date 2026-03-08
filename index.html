@@ -7,6 +7,43 @@
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/layout.css">
     <link rel="stylesheet" href="styles/views.css">
+    <style>
+        /* ── 史诗升级补充样式 ── */
+        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes slideUpIn{ from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes slideDownOut{ from{transform:translateY(0);opacity:1} to{transform:translateY(30px);opacity:0} }
+
+        /* 行动入口叙事浮层文字排印 */
+        #action-narrative-overlay p { font-size:16px; color:#e8dcc8; }
+
+        /* 采集叙事面板 */
+        #exp-collect-narrative { transition: opacity .3s; }
+
+        /* 传习录条目动画 */
+        #xl-list > div { animation: fadeIn .4s ease both; }
+
+        /* 工坊活动面板 */
+        #wae-panel { animation: fadeIn .3s ease; }
+        #wae-body  { scrollbar-width: thin; scrollbar-color: rgba(212,175,55,.3) transparent; }
+
+        /* 时辰切换按钮 */
+        .time-toggle-btn { transition: color .3s, border-color .3s; }
+
+        /* 节气横幅 */
+        #scene-solar-banner, #bside-solar-bar { animation: fadeIn .5s ease; }
+
+        /* 驻地传承人头像行 */
+        #scene-resident-bar > div { transition: transform .15s, box-shadow .15s; }
+        #scene-resident-bar > div:hover { transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(212,175,55,.25); }
+
+        /* 传习录批注金色字 */
+        .xl-annotation { color: var(--gold); font-style: italic; }
+
+        /* 订单状态标签 */
+        .order-status-tag { padding: 2px 8px; border-radius: 10px;
+                            font-size: 11px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
@@ -291,6 +328,9 @@ onclick="enterScene('senzhidiyu')">
                 <div>🎊 活动中心 <span class="subtitle" style="margin-left:10px;">限时活动、节庆庆典、灯谜大会</span></div>
             </div>
             
+            <!-- 节气历小组件（bond-engine.js 初始化后自动渲染） -->
+            <div id="solar-term-widget" style="margin-bottom:16px;"></div>
+
             <div class="event-banner">
                 <div>
                     <div class="event-banner-title">🏮 元宵灯谜大会</div>
@@ -982,7 +1022,17 @@ onclick="enterScene('senzhidiyu')">
 <script src="scripts/workshop.js?t=9999"></script>
 <script src="scripts/exploration-engine.js?t=9999"></script>
 <script src="scripts/scene.js?t=9999"></script>
-<script src="scripts/quest-engine.js?t=9999"></script> 
+<script src="scripts/quest-engine.js?t=9999"></script>
+
+<!-- ═══════════════════════════════════════════════════════
+     ✦ 史诗升级模块 ✦  按依赖顺序加载，不可调换
+     ═══════════════════════════════════════════════════════ -->
+<!-- 1. 传承纽带引擎：节气 / 传习录 / O2O订单 / 羁绊 / 工坊活动  -->
+<script src="scripts/bond-engine.js?t=9999"></script>
+<!-- 2. 探索引擎补丁：生态系统 / 采集叙事 / 时辰滤镜           -->
+<script src="scripts/exploration-patch.js?t=9999"></script>
+<!-- 3. 天工阁补丁：卡片实装 / B端订单面板 / 批注入口           -->
+<script src="scripts/workshop-patch.js?t=9999"></script>
 
 <!-- =====================================================
      雅集模态框组 (B端：发请帖 / C端：查看邀约列表)
