@@ -249,6 +249,7 @@ window.pickInheritorLocation = function(event) {
 window.renderInheritorDash = function() {
     const container = document.getElementById('inheritor-dash-content');
     if (!container) return;
+
     _ensureInheritorModals();
     _syncGlobalInheritorData();
 
@@ -321,6 +322,9 @@ window.renderInheritorDash = function() {
         let bg = {'实体':'#fde8e8','线下':'#e8f4ef','线上':'#e6f0fa','藏品':'#f0ebf6'}[listing.type] || '#eee';
         return `<div class="dash-list-item" style="padding:12px 15px;"><div style="display:flex; gap:10px; align-items:center;"><span style="font-size:11px; font-weight:bold; padding:4px 8px; border-radius:4px; background:${bg}; color:${c};">${listing.type}</span><div><div style="font-weight:bold; font-size:13px; color:var(--ink);">${listing.name}</div><div style="font-size:11px; color:#888; margin-top:5px;">库存: ${listing.stock} | 售价: ${listing.price}</div></div></div></div>`;
     }).join('');
+
+    // ➕ 新增这一行，获取当前匠师的名字
+    currentName = document.getElementById('display-inheritor-name')?.innerText || '未知匠师';
 
     const customAI = (gameState.customAI && gameState.customAI[currentName]) ? gameState.customAI[currentName] : { personality: '', knowledge: '' };
     let aiConfigHTML = `
