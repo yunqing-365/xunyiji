@@ -1,14 +1,16 @@
 // server.js (寻遗集 · AI后端引擎)
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import { ethers } from "ethers";
+import crypto from "crypto";
 
 const app = express();
 // 允许前端访问
 app.use(cors());
-// 允许解析 JSON 数据
-app.use(express.json());
+// 允许接收最大 50MB 的文件数据
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // DeepSeek 官方 API 地址
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
@@ -92,6 +94,93 @@ app.post('/api/chat', async (req, res) => {
     }
 
 }); // <--- 之前可能就是漏复制了这个大括号闭合！
+
+// ==========================================
+// ⛓️ Web3 区块链接口：非遗知识指纹确权上链
+// ==========================================
+app.post('/api/register-knowledge', async (req, res) => {
+    try {
+        const { inheritorName, fileName, fileContent } = req.body;
+
+        // 1. 在服务器端计算 SHA-256 数字指纹（绝密内容不上链，只上指纹！）
+        const documentHash = "0x" + crypto.createHash('sha256').update(fileContent).digest('hex');
+
+        // 2. 连接本地私链 (Hardhat)
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        
+        // 3. 平台官方钱包私钥 (Hardhat 自带的 10000 ETH 创世账号)
+        const privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+        const wallet = new ethers.Wallet(privateKey, provider);
+
+        // 4. 你刚刚部署的合约地址
+        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const contractABI = [
+            "function registerKnowledge(string memory _inheritorName, string memory _fileName, string memory _documentHash) public"
+        ];
+        
+        const registry = new ethers.Contract(contractAddress, contractABI, wallet);
+
+        // 5. 发起智能合约交易
+        console.log(`⏳ 正在将 ${inheritorName} 的资料指纹上链...`);
+        const tx = await registry.registerKnowledge(inheritorName, fileName, documentHash);
+        const receipt = await tx.wait(); // 等待区块确认
+
+        console.log(`✅ 上链成功！区块高度: ${receipt.blockNumber}`);
+
+        // 6. 把成功的凭证返回给前端展示
+        res.json({
+            success: true,
+            txHash: tx.hash,
+            blockNumber: receipt.blockNumber,
+            documentHash: documentHash
+        });
+
+    } catch (error) {
+        console.error("❌ 上链失败:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ==========================================
+// 🔍 Web3 区块链接口：查询链上确权历史记录
+// ==========================================
+app.get('/api/knowledge-history', async (req, res) => {
+    try {
+        const { inheritorName } = req.query;
+        
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+        const wallet = new ethers.Wallet("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", provider);
+        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // 你的合约地址
+        const contractABI = [
+            "function getKnowledgeEntries(address _master) public view returns (tuple(string inheritorName, string fileName, string documentHash, uint256 timestamp)[])"
+        ];
+        
+        const registry = new ethers.Contract(contractAddress, contractABI, wallet);
+
+        // 从区块链读取属于平台官方钱包的所有记录
+        const entries = await registry.getKnowledgeEntries(wallet.address);
+        
+        // 格式化并筛选出当前匠师的记录
+        let history = entries.map(e => ({
+            inheritorName: e.inheritorName,
+            fileName: e.fileName,
+            documentHash: e.documentHash,
+            timestamp: Number(e.timestamp) * 1000 // 智能合约是秒，JS需要毫秒
+        }));
+
+        if (inheritorName) {
+            history = history.filter(e => e.inheritorName === inheritorName);
+        }
+
+        // 按时间倒序（最新的在最前）
+        history.sort((a, b) => b.timestamp - a.timestamp);
+
+        res.json({ success: true, history });
+    } catch (error) {
+        console.error("❌ 查询链上记录失败:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // 启动服务器
 const PORT = 3000;

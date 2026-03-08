@@ -350,6 +350,196 @@ window.submitBlueprint = function() {
     document.getElementById('bp-num1').value = '';
 };
 
+// ==========================================
+// 🔗 匠师中控台：AI灵识培养 & Web3数字确权 (终极版)
+// ==========================================
+window.openWeb3Console = function(inheritorName = "万艺城·匿名匠师") {
+    document.getElementById('web3-console')?.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'web3-console';
+    panel.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:680px; height:520px; background:linear-gradient(135deg, rgba(20,20,30,0.98), rgba(10,10,15,0.98)); border:1px solid #d4af37; border-radius:12px; box-shadow: 0 0 30px rgba(212,175,55,0.2), inset 0 0 15px rgba(212,175,55,0.1); z-index:3000; color:#e8dcc8; font-family:sans-serif; display:flex; flex-direction:column; overflow:hidden;`;
+
+    // 顶部标题和双页签 (Tabs)
+    panel.innerHTML = `
+        <div style="padding:20px 30px; border-bottom:1px solid rgba(212,175,55,0.3); display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3);">
+            <div style="display:flex; gap:20px;">
+                <button id="tab-upload" style="background:none; border:none; color:#d4af37; font-size:18px; font-weight:bold; text-shadow:0 0 10px rgba(212,175,55,0.5); cursor:pointer; padding-bottom:5px; border-bottom:2px solid #d4af37;">📤 灵识培养与上链</button>
+                <button id="tab-history" style="background:none; border:none; color:#888; font-size:18px; font-weight:bold; cursor:pointer; padding-bottom:5px; border-bottom:2px solid transparent; transition:0.3s;">📜 链上确权资产</button>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:#aaa; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        
+        <div id="panel-upload" style="padding:30px; flex:1; overflow-y:auto;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; padding:10px 15px; background:rgba(212,175,55,0.1); border-radius:8px;">
+                <span style="font-size:24px;">🧑‍🎨</span>
+                <div>
+                    <div style="font-size:12px; color:#aaa;">当前授权匠师</div>
+                    <div style="font-weight:bold; color:#d4af37;">${inheritorName}</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-size:13px; color:#aaa; margin-bottom:8px;">选择非遗典籍/配方文件 (支持 PDF, Doc, Txt, 图片)</label>
+                <div style="border:2px dashed rgba(212,175,55,0.4); border-radius:8px; padding:20px; text-align:center; position:relative; background:rgba(0,0,0,0.3); transition:0.3s;" id="file-drop-area">
+                    <input type="file" id="w3-file" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                    <div style="font-size:32px; margin-bottom:10px;">📄</div>
+                    <div id="file-name-display" style="color:#d4af37; font-weight:bold;">点击此处，或拖拽文件至此</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">系统将在本地提取指纹上链，并同步喂养您的 AI 灵识</div>
+                </div>
+            </div>
+
+            <div id="w3-result" style="display:none; margin-bottom:20px; padding:15px; border-left:4px solid #00ffaa; background:rgba(0,255,170,0.05); font-size:13px; word-break:break-all; border-radius:0 8px 8px 0;"></div>
+
+            <button id="w3-btn-submit" disabled style="width:100%; padding:14px; background:linear-gradient(90deg, #555, #333); border:1px solid #666; border-radius:8px; color:#aaa; font-weight:bold; font-size:16px; cursor:not-allowed; transition:0.3s; margin-top:auto;">
+                等待选择文件...
+            </button>
+        </div>
+
+        <div id="panel-history" style="padding:30px; flex:1; overflow-y:auto; display:none;">
+            <div id="history-loading" style="text-align:center; color:#d4af37; padding:40px;">
+                <div class="anim-blink">🔄 正在与区块链节点同步数据...</div>
+            </div>
+            <div id="history-list" style="display:flex; flex-direction:column; gap:15px;"></div>
+        </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // =====================================
+    // 逻辑控制区
+    // =====================================
+    const tabUpload = document.getElementById('tab-upload');
+    const tabHistory = document.getElementById('tab-history');
+    const panelUpload = document.getElementById('panel-upload');
+    const panelHistory = document.getElementById('panel-history');
+    const fileInput = document.getElementById('w3-file');
+    const btnSubmit = document.getElementById('w3-btn-submit');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    // 切换页签逻辑
+    const switchTab = (tab) => {
+        if (tab === 'upload') {
+            tabUpload.style.color = '#d4af37'; tabUpload.style.borderBottomColor = '#d4af37';
+            tabHistory.style.color = '#888'; tabHistory.style.borderBottomColor = 'transparent';
+            panelUpload.style.display = 'block'; panelHistory.style.display = 'none';
+        } else {
+            tabUpload.style.color = '#888'; tabUpload.style.borderBottomColor = 'transparent';
+            tabHistory.style.color = '#d4af37'; tabHistory.style.borderBottomColor = '#d4af37';
+            panelUpload.style.display = 'none'; panelHistory.style.display = 'block';
+            loadHistory(); // 切换到历史页时自动拉取链上数据
+        }
+    };
+    tabUpload.onclick = () => switchTab('upload');
+    tabHistory.onclick = () => switchTab('history');
+
+    // 文件选择逻辑
+    fileInput.onchange = () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.innerText = `📁 已选择: ${fileInput.files[0].name}`;
+            btnSubmit.disabled = false;
+            btnSubmit.style.background = 'linear-gradient(90deg, #d4af37, #b8860b)';
+            btnSubmit.style.color = '#000';
+            btnSubmit.style.borderColor = '#d4af37';
+            btnSubmit.style.boxShadow = '0 0 15px rgba(212,175,55,0.4)';
+            btnSubmit.innerHTML = '✨ 注入灵识 并 链上确权';
+            btnSubmit.style.cursor = 'pointer';
+        }
+    };
+
+    // 上链与培灵逻辑
+    btnSubmit.onclick = () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '🔄 正在提取数字指纹并铸造区块...';
+        btnSubmit.style.filter = 'grayscale(1)';
+        document.getElementById('w3-result').style.display = 'none';
+
+        // 核心：使用 FileReader 读取文件内容，并发送给后端确权
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                // 将文件转为 Base64 字符串发送给后端进行哈希计算和上链
+                const fileContent = e.target.result; 
+                
+                const response = await fetch('http://localhost:3000/api/register-knowledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inheritorName, fileName: file.name, fileContent })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('w3-result').style.display = 'block';
+                    document.getElementById('w3-result').innerHTML = `
+                        <div style="color:#00ffaa; font-weight:bold; margin-bottom:10px; font-size:15px;">🎉 灵识注入完毕，资产确权成功！</div>
+                        <div style="margin-bottom:5px;"><span style="color:#888;">📜 唯一数字指纹:</span><br><span style="color:#fff; font-family:monospace;">${data.documentHash}</span></div>
+                        <div style="margin-bottom:5px;"><span style="color:#888;">📦 确权区块高度:</span> <span style="color:#d4af37;">#${data.blockNumber}</span></div>
+                        <div><span style="color:#888;">🔗 交易凭证 (TxHash):</span><br><span style="color:#00aaff; font-family:monospace;">${data.txHash}</span></div>
+                    `;
+                    btnSubmit.innerHTML = '✅ 确权完成';
+                    if (typeof showNotification === 'function') showNotification('非遗数字资产铸造成功！', '⛓️');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                alert('上链失败：' + err.message);
+                btnSubmit.innerHTML = '✨ 重试注入灵识';
+                btnSubmit.disabled = false;
+                btnSubmit.style.filter = 'none';
+            }
+        };
+        reader.readAsDataURL(file); // 读取文件
+    };
+
+    // 拉取历史记录逻辑
+    const loadHistory = async () => {
+        const listDiv = document.getElementById('history-list');
+        const loadingDiv = document.getElementById('history-loading');
+        listDiv.innerHTML = '';
+        loadingDiv.style.display = 'block';
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/knowledge-history?inheritorName=${encodeURIComponent(inheritorName)}`);
+            const data = await response.json();
+            
+            loadingDiv.style.display = 'none';
+
+            if (!data.success) throw new Error(data.error);
+            if (data.history.length === 0) {
+                listDiv.innerHTML = `<div style="text-align:center; color:#888; padding:30px;">该匠师尚无上链的确权资产。</div>`;
+                return;
+            }
+
+            // 渲染历史记录卡片
+            data.history.forEach(item => {
+                const dateStr = new Date(item.timestamp).toLocaleString();
+                const card = document.createElement('div');
+                card.style.cssText = `background:rgba(255,255,255,0.03); border:1px solid rgba(212,175,55,0.2); border-radius:8px; padding:15px; position:relative; overflow:hidden;`;
+                card.innerHTML = `
+                    <div style="position:absolute; top:0; right:0; background:rgba(212,175,55,0.2); color:#d4af37; padding:2px 10px; font-size:11px; border-bottom-left-radius:8px;">已确权</div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:20px;">📄</span>
+                        <span style="font-weight:bold; color:#e8dcc8; font-size:15px;">${item.fileName}</span>
+                    </div>
+                    <div style="font-size:12px; color:#aaa; margin-bottom:6px;">
+                        <span style="color:#888;">确权时间：</span>${dateStr}
+                    </div>
+                    <div style="font-size:11px; color:#aaa; word-break:break-all; background:rgba(0,0,0,0.4); padding:8px; border-radius:4px; font-family:monospace;">
+                        <span style="color:#888;">文件数字指纹 (Hash):</span><br>${item.documentHash}
+                    </div>
+                `;
+                listDiv.appendChild(card);
+            });
+        } catch (err) {
+            loadingDiv.innerHTML = `<span style="color:#ff4444;">❌ 拉取失败: ${err.message}</span>`;
+        }
+    };
+};
+
 // 确保匠师登录时能正确调用渲染函数
 const originalInitInheritor = window._initInheritorSession;
 window._initInheritorSession = function(username) {
