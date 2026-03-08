@@ -4,6 +4,8 @@ import cors from 'cors';
 import 'dotenv/config';
 import { ethers } from "ethers";
 import crypto from "crypto";
+import axios from "axios";  // <--- 补上这一行！
+
 
 const app = express();
 // 允许前端访问
