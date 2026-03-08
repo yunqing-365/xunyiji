@@ -21,6 +21,7 @@ const SaveManager = {
             quests: null, // 将由 quest-engine 初始化
             achievements: {},
             unlockedRecipes: [],
+            unlockedCompendium:[],
             restoredNodes: [],
             worldState: 1, // 0晨曦, 1午时, 2黄昏, 3子夜
             settings: { sound: true, music: true, graphics: true }
@@ -198,88 +199,7 @@ const ScreenTransition = {
 //🛠️ 第三步：加强任务引擎的安全判定 (防报错地图卡死)
 
 
-// 2. 核心：安全事件分发器（带错误拦截）
-window.dispatchQuestEvent = function(eventName, amount = 1) {
-    // 🌟 如果还没初始化任务数据，或者数据不对，自动初始化
-    if (!gameState.quests || !gameState.quests.main) {
-        if (typeof questData !== 'undefined') {
-            gameState.quests = JSON.parse(JSON.stringify(questData));
-        } else {
-            return; // 没有数据源，直接退出，防止报错
-        }
-    }
-    
-    let isProgressUpdated = false;
-
-    // 遍历任务大类
-    ['main', 'side', 'daily'].forEach(category => {
-        const list = gameState.quests[category];
-        if (!list) return; // 🌟 核心防崩溃：如果没有这个分类则跳过
-
-        list.forEach(quest => {
-            if (quest.status !== 'active') return;
-
-            let isQuestComplete = true;
-
-            quest.objectives.forEach(obj => {
-                // 匹配事件
-                if (obj.event === eventName && obj.current < obj.required) {
-                    obj.current = Math.min(obj.current + amount, obj.required);
-                    isProgressUpdated = true;
-                    
-                    if (obj.current >= obj.required) {
-                        if(typeof playSound === 'function') playSound('click');
-                        if(typeof showNotification === 'function') showNotification(`目标达成：${obj.text}`, '📝');
-                    }
-                }
-                
-                // 检查是否全满
-                if (obj.current < obj.required) {
-                    isQuestComplete = false;
-                }
-            });
-
-            if (isQuestComplete && isProgressUpdated) {
-                _completeQuest(quest);
-            }
-        });
-    });
-
-    if (isProgressUpdated) {
-        renderQuestPanel(currentQuestTab);
-    }
-};
-
-/**
- * 向背包添加物品并触发 UI 刷新
- * @param {string} itemName - 物品名称
- * @param {number} [qty=1]  - 数量
- */
-// 升级后的 addItem：加入图鉴解锁逻辑
-function addItem(itemName, qty = 1) {
-    gameState.inventory[itemName] = (gameState.inventory[itemName] || 0) + qty;
-    
-    // 初始化图鉴记忆库
-    if (!gameState.discoveredItems) gameState.discoveredItems = [];
-    
-    // 如果是首次获得，永久点亮图鉴！
-    if (!gameState.discoveredItems.includes(itemName)) {
-        gameState.discoveredItems.push(itemName);
-        // 如果是在大世界探索或造物中，可以悄悄弹个提示
-        console.log(`【图鉴解锁】首次获得：${itemName}`);
-    }
-
-    // 触发事件总线和UI更新
-    if (typeof GameEvent !== 'undefined') {
-        GameEvent.emit('INVENTORY_CHANGED', { item: itemName, amount: qty });
-        GameEvent.emit('collect_item', { amount: qty, item: itemName }); 
-    }
-    if (typeof updateInventory === 'function') updateInventory();
-    if (typeof SaveManager !== 'undefined') SaveManager.save();
-}
-
-
-/**
+/* 
  * 从背包扣除灵石，若不足返回 false
  * @param {number} amount
  * @returns {boolean}
@@ -558,47 +478,25 @@ function closeAchievement() {
 // 🌟 进阶优化 1：统一的主视图切换与生命周期路由
 // ============================================================
 window.switchMainView = function(viewId, dockEl) {
-    // 1. 隐藏所有视图
     document.querySelectorAll('.view-container').forEach(v => {
         v.classList.remove('active-view');
-        v.style.display = ''; // 清除可能残留的内联样式
+        v.style.display = '';
     });
-
-    // 2. 激活目标视图
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active-view');
-
-    // 3. 处理底部 Dock 的显示与高亮
     const dock = document.getElementById('player-dock');
-    if (dock) {
-        // 只要不是在探索视图和场景枢纽里，就强行显示底部 Dock
-        if (viewId !== 'view-exploration' && viewId !== 'view-scene') {
-            dock.classList.remove('hidden');
-        }
-    }
+    if (dock && viewId !== 'view-exploration' && viewId !== 'view-scene') dock.classList.remove('hidden');
     if (dockEl) {
-        document.querySelectorAll('.dock-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.dock-item').forEach(i => i.classList.remove('active'));
         dockEl.classList.add('active');
     }
-
-    // 4. 视图生命周期钩子：切入对应页面时自动执行对应的数据渲染
-    if (viewId === 'view-map') {
-        if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('view_map');
-    } else if (viewId === 'view-inventory') {
-        if (typeof dispatchQuestEvent === 'function') dispatchQuestEvent('view_inventory');
-        if (typeof updateInventory === 'function') updateInventory('all'); // 强制刷新背包
-    } else if (viewId === 'view-profile') {
-        if (typeof renderAchievements === 'function') renderAchievements();
-        if (typeof meditatePersona === 'function') meditatePersona();
-    } else if (viewId === 'view-workshop') {
-        if (typeof renderWorkshop === 'function') renderWorkshop();
-    } else if (viewId === 'view-deduction') {
-        if (typeof renderDeductionBoard === 'function') renderDeductionBoard();
-    } else if (viewId === 'view-lingshi') {
-        if (typeof renderLingshi === 'function') renderLingshi();
-    }
-
-    // 5. 播放切页音效
+    // 生命周期钩子 (原三个函数的内容合并到这里)
+    if (viewId === 'view-inventory')   updateInventory('all');
+    if (viewId === 'view-profile')     { renderAchievements?.(); meditatePersona?.(); renderXiulilu?.(); _renderHandsignPreview?.(); }
+    if (viewId === 'view-workshop')    renderWorkshop?.();
+    if (viewId === 'view-deduction')   renderDeductionBoard?.();
+    if (viewId === 'view-lingshi')     renderLingshi?.();
+    if (viewId === 'view-map')         dispatchQuestEvent?.('view_map');
     if (typeof playSound === 'function') playSound('view_switch');
 };
 
@@ -2362,67 +2260,6 @@ const SOLAR_TERMS = [
       activity: { name: '围炉夜话·煮茶局', reward: '冬至汤圆', stones: 200 } },
 ];
 
-const SolarTermEngine = {
-    getCurrentTerm() {
-        const now   = new Date();
-        const month = now.getMonth() + 1;
-        const day   = now.getDate();
-        // 找最近已过的节气
-        let matched = null;
-        for (const term of SOLAR_TERMS) {
-            if (term.month < month || (term.month === month && term.day <= day)) {
-                matched = term;
-            }
-        }
-        return matched || SOLAR_TERMS[SOLAR_TERMS.length - 1];
-    },
-
-    check() {
-        const term = this.getCurrentTerm();
-        if (!term) return;
-        gameState.currentSolarTerm = term.name;
-
-        // 更新 HUD buff 文字（若和世界时辰不冲突，拼接在一起）
-        const buffEl = document.getElementById('world-buff');
-        if (buffEl) {
-            buffEl.innerHTML = `<span style="color:${term.color};">${term.icon} 节气·${term.name}：${term.buff}</span>`;
-        }
-
-        // 写入传习录
-        _appendXiulilu({
-            type: 'solar', icon: term.icon, color: term.color,
-            title: `节气·${term.name}`,
-            desc:  term.buff,
-        });
-
-        // 节气弹窗（延迟2秒，不打扰登录动画）
-        setTimeout(() => {
-            if (typeof openSolarTermModal === 'function') openSolarTermModal();
-            else if (typeof showNotification === 'function') showNotification(`今日节气【${term.name}】— ${term.shopHint}`, term.icon, 6000);
-        }, 2500);
-    },
-
-    // 返回当前节气的商城新品列表（供 REGION_SHOPS 用）
-    getSeasonalItems() {
-        const term = this.getCurrentTerm();
-        if (!term) return [];
-        return [
-            {
-                id:    `solar_${term.name}_1`,
-                name:  `【节气·${term.name}】${term.activity.reward}`,
-                cat:   'seasonal',
-                price: term.activity.stones,
-                stock: 12,
-                icon:  term.icon,
-                desc:  `节气限定·${term.name}特供，过期无补货`,
-                o2oType: '实体',
-                realPrice: 0,
-                tag: 'solar'
-            }
-        ];
-    }
-};
-
 // ============================================================
 // 十九、非遗百科 (纯净科普系统)
 // ============================================================
@@ -2915,13 +2752,6 @@ window.triggerQuest = function(itemName) { showNotification(`【系统提示】�
 window.readEncyclopedia = function(itemName) { showNotification(`你翻开了 ${itemName}，获得大量非遗文化知识。`, '📚', 4000); }
 window.playHologram = function(itemName) { showNotification(`【全息投影已启动】正在播放百年前的传承录像...`, '📸', 4000); }
 
-const _inventorySwitchHook = window.switchMainView;
-window.switchMainView = function(viewId, dockEl) {
-    if (typeof _inventorySwitchHook === 'function') _inventorySwitchHook(viewId, dockEl);
-    if (viewId === 'view-inventory') {
-        renderInventory('all');
-    }
-};
 
 
 // ============================================================
@@ -3646,15 +3476,7 @@ window.buyItem = function(itemId) {
     if (typeof playSound === 'function') playSound('buy');
 };
 
-// ── switchMainView profile 钩子：补充传习录 + 手信预览渲染 ──
-const _origSwitch = window.switchMainView;
-window.switchMainView = function(viewId, dockEl) {
-    _origSwitch(viewId, dockEl);
-    if (viewId === 'view-profile') {
-        if (typeof renderXiulilu === 'function') renderXiulilu();
-        _renderHandsignPreview();
-    }
-};
+
 
 // ── 节气公告弹窗（由 SolarTermEngine.check 升级调用） ──
 window.openSolarTermModal = function() {
@@ -3688,4 +3510,52 @@ window.openSolarTermModal = function() {
             </div>
         </div>`;
     openModal('solar-term-modal');
+};
+
+window.goToWorkshopFromScene = function() {
+    if (typeof leaveScene === 'function') leaveScene();
+    switchMainView('view-workshop', document.getElementById('dock-workshop'));
+    if (typeof renderWorkshop === 'function') renderWorkshop();
+};
+
+window.renderDeductionBoard = function() {
+    const inv = document.getElementById('deduction-inventory');
+    if (!inv) return;
+    inv.innerHTML = Object.entries(gameState.inventory || {})
+        .filter(([,v]) => v > 0)
+        .map(([name]) => {
+            const data = (typeof itemDatabase !== 'undefined' && itemDatabase[name]) || { icon:'📦' };
+            return `<div onclick="addToDeductionSlot('${name}')" style="border:1px solid #333;border-radius:8px;padding:10px;text-align:center;cursor:pointer;background:#1a1816;">
+                <div style="font-size:28px;">${data.icon}</div>
+                <div style="font-size:11px;color:#aaa;margin-top:4px;">${name}</div>
+            </div>`;
+        }).join('') || '<div style="color:#666;text-align:center;padding:20px;">行囊为空</div>';
+};
+window.addToDeductionSlot = function(itemName) {
+    const s1 = document.getElementById('deduction-slot-1');
+    const s2 = document.getElementById('deduction-slot-2');
+    const target = s1.dataset.item ? s2 : s1;
+    target.innerHTML = `<div style="font-size:36px;">${(itemDatabase?.[itemName]||{}).icon||'📦'}</div><div style="font-size:12px;color:var(--gold);margin-top:4px;">${itemName}</div>`;
+    target.dataset.item = itemName;
+    const btn = document.getElementById('btn-execute-deduction');
+    if (s1.dataset.item && s2.dataset.item) { btn.disabled = false; btn.style.opacity = '1'; }
+};
+window.clearDeductionSlot = function(n) {
+    const slot = document.getElementById(`deduction-slot-${n}`);
+    slot.innerHTML = `<div style="font-size:30px;opacity:0.3;">➕</div><div style="font-size:12px;color:#888;margin-top:5px;">线索${n===1?'一':'二'}</div>`;
+    delete slot.dataset.item;
+    document.getElementById('btn-execute-deduction').disabled = true;
+    document.getElementById('btn-execute-deduction').style.opacity = '0.5';
+};
+window.executeDeduction = function() {
+    showNotification('因果推演中...', '🔮');
+    setTimeout(() => showNotification('推演完成！两件灵物之间存在神秘的历史渊源。', '✨', 5000), 1500);
+};
+
+window.generateFakeAILog = function() {
+    if (typeof LingshiEngine !== 'undefined') {
+        LingshiEngine.generateLog();
+        renderLingshi();
+        showNotification('灵识感知已刷新', '🔮');
+    }
 };

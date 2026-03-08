@@ -322,3 +322,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleAuth();
     });
 });
+
+function onLoginSuccess() {
+    _initStartingItems();
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'flex'; // 或 block
+    document.getElementById('player-dock').classList.remove('hidden');
+
+    SaveManager.load();
+    WorldTimeEngine.start();      // ← 启动世界时钟
+    initQuestEngine();            // ← 初始化任务系统
+    updateStats();                // 刷新灵石显示
+    updateInventory('all');       // 刷新背包
+    renderQuestPanel('main');     // 渲染任务面板
+}

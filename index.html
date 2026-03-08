@@ -1118,5 +1118,18 @@ onclick="enterScene('senzhidiyu')">
     <div class="modal-content" style="padding: 25px;" id="fragment-detail-content"></div>
 </div>
 
+<div id="achievement-panel" class="modal" style="max-width:360px;">
+  <div class="modal-header modal-header-gold">
+    <h3>🏆 成就解锁</h3>
+    <button class="modal-close" onclick="closeAchievement()">×</button>
+  </div>
+  <div class="modal-content" style="text-align:center;padding:30px;">
+    <div id="achievement-icon" style="font-size:60px;margin-bottom:10px;"></div>
+    <h3 id="achievement-name" style="color:var(--gold);"></h3>
+    <p id="achievement-desc" style="color:#888;font-size:13px;margin:10px 0;"></p>
+    <p id="achievement-reward" style="color:var(--jade);font-weight:bold;"></p>
+  </div>
+</div>
+
 </body>
 </html>
