@@ -57,7 +57,7 @@ const sceneConfig = {
         {
           id: 'wyc_npc_laoban', type: 'npc', icon: '🧑‍🎤', label: '梨园陈老板', pos: { x: 1000, y: 650 }, floatDelay: '0s',
           data: {
-            name: '陈老板', role: '戏班班主', avatar: '🧑‍🎤', isAI: false,
+            name: '陈老板', role: '戏班班主', avatar: '🧑‍🎤', isAI: true,
             dialog: [
               { text: '"客官，今日咱们梨园唱的是《牡丹亭》。不过这好戏啊，得配好茶好酒！你若是能在九州寻得【百年红酒】，我便破例让你去后台看看。"\n<span style="color:#888;font-size:12px;">(提示：使用 🎁赠送 选项，送他一瓶百年红酒试试)</span>', 
                 options: ['我去找找', '给我来张戏票', '改日再来'] }
@@ -226,7 +226,7 @@ const sceneConfig = {
       spawnPoint: { x: 500, y: 750 },
       nodes: [
         { id: 'bwx_npc_chef',       type: 'npc',      icon: '👨‍🍳', label: '老字号掌柜', pos: { x: 900,  y: 550 }, floatDelay: '0s',   data: { name: '李掌柜', role: '百年老字号传人', avatar: '👨‍🍳', isAI: true,  aiPersonality: '热情豪爽的美食家，满口美食典故，喜欢考验顾客对传统美食的了解',  bindInheritorId: null, dialog: [] } },
-        { id: 'bwx_npc_shuoshu',    type: 'npc',      icon: '🎙️', label: '说书人',    pos: { x: 1600, y: 400 }, floatDelay: '1s',   data: { name: '王说书', role: '评书艺人',    avatar: '🎙️', isAI: false, bindInheritorId: null, dialog: [{ text: '话说那年烟花三月，九州大地上突然出现了一位身怀绝技的游侠……你想听哪段？', options: ['九州奇闻', '非遗传说', '下次再听'] }] } },
+        { id: 'bwx_npc_shuoshu',    type: 'npc',      icon: '🎙️', label: '说书人',    pos: { x: 1600, y: 400 }, floatDelay: '1s',   data: { name: '王说书', role: '评书艺人',    avatar: '🎙️', isAI: true, bindInheritorId: null, dialog: [{ text: '话说那年烟花三月，九州大地上突然出现了一位身怀绝技的游侠……你想听哪段？', options: ['九州奇闻', '非遗传说', '下次再听'] }] } },
         { id: 'bwx_workshop_mian',  type: 'workshop', icon: '⛩️', label: '面点工坊', pos: { x: 400,  y: 350 }, floatDelay: '0.5s', data: { bindInheritorId: null, name: '面点工坊', desc: '传统面点制作体验' } },
         { id: 'bwx_collect_spice',  type: 'collect',  icon: '🌶️', label: '香料堆',   pos: { x: 1300, y: 800 }, floatDelay: '1.5s', data: { itemName: '五香料', itemIcon: '🌶️', itemType: 'material', count: 5, rarity: 1, desc: '市集散落的香料', respawnSecs: 180 } },
         { id: 'bwx_collect_cake',   type: 'collect',  icon: '🍘', label: '点心盒',   pos: { x: 700,  y: 1100 }, floatDelay: '2s',  data: { itemName: '糕点材料', itemIcon: '🍘', itemType: 'material', count: 3, rarity: 1, desc: '老字号留下的点心配方材料', respawnSecs: 240 } },

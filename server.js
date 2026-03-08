@@ -84,10 +84,10 @@ app.post('/api/chat', async (req, res) => {
         const reply = response.data.choices[0].message.content;
         console.log(`AI 回复: "${reply}"`);
 
-	setTimeout(() => { 
+	
+        setTimeout(() => { 
             res.json({ reply: reply }); 
-        }, 800); // 改为 200 毫秒，几乎是秒回
-        res.json({ reply: reply });
+        }, 800);
         // ⬆️ --- 真实的 AI 请求结束 --- ⬆️
 
     } catch (error) {

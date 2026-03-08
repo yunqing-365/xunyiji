@@ -90,19 +90,27 @@ const gameState = {
 
     // 签到
     checkedIn:  false,
-    checkinDay: 0,         // 当前连签天数（0-based 索引）
+    checkinDay: 0,
 
     // 灯谜
     currentRiddle: 0,
     riddleScore:   0,
 
     // 设置
-    settings: {
-        sound:    true,
-        music:    true,
-        graphics: true,
-        weather:  true
-    }
+    settings: { sound: true, music: true, graphics: true, weather: true },
+
+    // ── 知音羁绊系统 ──
+    // intimacy 已有，补充扩展字段
+    bonds: {},          // { npcName: { lastEvent:'', lastTime:0, gifts:0, letters:0 } }
+
+    // ── 传习录 ──
+    xiulilu: [],        // [ { type, title, desc, time, icon, color } ]
+
+    // ── 手信邮寄 ──
+    handsignOrders: [], // [ { id, inheritor, product, status, address, code, time } ]
+
+    // ── 节气缓存 ──
+    currentSolarTerm: null,
 };
 
 SaveManager.load();
@@ -640,50 +648,91 @@ window.closeShop = function() {
     closeModal('shop-panel');
 };
 
-// 2. 建立“千店千面”的区域商店数据库
+// 2. 九州商行 · O2O 千店千面数据库
+// o2oType: '实体'=现货直邮 | '线下'=到店核销 | '线上'=即时解锁 | '预定'=定制排期
 const REGION_SHOPS = {
-    'wanyicheng': {
-        title: '🏪 梨园百货', npcName: '陈掌柜', npcEmoji: '🎭', theme: 'modal-header-red',
-        greeting: '客官，咱们这里的戏服料子，全九州数第一！',
+    'default': {
+        title: '🏪 九州云商 · 匠心集市', npcName: '云掌柜', npcEmoji: '📦',
+        theme: 'modal-header-gold',
+        greeting: '客官，这里汇聚九州匠师心血之作，每一件都有来处、有温度。',
         items: [
-            { id: 'w1', name: '苏绣丝线', cat: 'material', price: 20, stock: 10, icon: '🧵', desc: '【联动】可用于造物台合成团扇' },
-            { id: 'w2', name: '戏服碎布', cat: 'material', price: 15, stock: 8, icon: '🎀', desc: '缝制戏服的边角料' }
+            { id:'d_p1', name:'苏绣香囊（梅花款）',       cat:'physical', price:380, realPrice:128, stock:5,  icon:'🌸', o2oType:'实体',  desc:'王雪萍匠师工坊监制，真丝底料，手工苏绣，内含天然薰衣草香料。', badge:'匠师监制', deliverDays:7 },
+            { id:'d_p2', name:'龙泉青瓷小茶杯',           cat:'physical', price:600, realPrice:238, stock:3,  icon:'🏺', o2oType:'实体',  desc:'张景春匠师亲制，梅子青釉，每件孤品，附产品证书与匠师签名卡。', badge:'大师亲制', deliverDays:30 },
+            { id:'d_p3', name:'东阳木雕书签（松竹）',      cat:'physical', price:220, realPrice:68,  stock:10, icon:'🪵', o2oType:'实体',  desc:'李木雕匠师手工雕刻，香樟木，天然防虫，附礼盒包装。', badge:'非遗手作', deliverDays:14 },
+            { id:'d_p4', name:'剪纸·十二生肖套装',        cat:'physical', price:280, realPrice:88,  stock:8,  icon:'✂️', o2oType:'实体',  desc:'非遗传承人手剪，宣纸材质，压膜防水，附收藏级礼盒。', badge:'非遗手作', deliverDays:10 },
+            { id:'d_p5', name:'手工皮影（小旦角）',        cat:'physical', price:450, realPrice:168, stock:4,  icon:'🎭', o2oType:'实体',  desc:'驴皮手工制作，全套上色工艺，可悬挂可把玩，附表演说明书。', badge:'绝版工艺', deliverDays:20 },
+            { id:'d_o1', name:'苏绣入门体验课（1人）',     cat:'offline',  price:520, realPrice:198, stock:20, icon:'🪡', o2oType:'线下',  desc:'锦绣坊工坊·2小时·小班制·附带材料包，完成作品可带走。', badge:'体验热门', deliverDays:0 },
+            { id:'d_o2', name:'青瓷拉坯体验（2人同行）',   cat:'offline',  price:780, realPrice:298, stock:10, icon:'🏺', o2oType:'线下',  desc:'百作镇工坊·3小时·张景春匠师亲授·成品烧制后邮寄。', badge:'大师亲授', deliverDays:0 },
+            { id:'d_o3', name:'雅集私宴（6人包场）',       cat:'offline',  price:1800,realPrice:688, stock:5,  icon:'🍵', o2oType:'线下',  desc:'匠师内室私宴，茶道/琴乐/香道三选一主题，限定6人小圈。', badge:'私域限定', deliverDays:0 },
+            { id:'d_c1', name:'苏绣视频课·基础班',        cat:'course',   price:200, realPrice:68,  stock:999,icon:'📹', o2oType:'线上',  desc:'王雪萍匠师录制·共12节·永久观看·附PDF针法图谱。', badge:'即买即看', deliverDays:0 },
+            { id:'d_c2', name:'青瓷鉴赏直播课（月卡）',    cat:'course',   price:160, realPrice:58,  stock:999,icon:'🎓', o2oType:'线上',  desc:'每周日晚8点直播·可与匠师实时互动·含回放权限。', badge:'限时直播', deliverDays:0 },
+            { id:'d_c3', name:'东阳木雕技法精讲（全集）',  cat:'course',   price:350, realPrice:128, stock:999,icon:'📚', o2oType:'线上',  desc:'李木雕匠师讲授·20集进阶课·含工具选购指南。', badge:'系列课程', deliverDays:0 },
         ]
     },
-    'tongxiyu': {
-        title: '🐪 丝路商行', npcName: '阿里法德', npcEmoji: '👳‍♂️', theme: 'modal-header-gold',
-        greeting: '远方的朋友，来看看纯正的西域香料和神秘宝物吧！',
+    'jinxiufang': {
+        title: '🪡 锦绣坊·织绣匠铺', npcName: '王雪萍匠师', npcEmoji: '🪡',
+        theme: 'modal-header-jade',
+        greeting: '姑娘（小友），进来坐。这条丝线劈了六十四丝，比头发还细，摸一摸就知道了。',
         items: [
-            { id: 't1', name: '西域香料', cat: 'material', price: 60, stock: 5, icon: '🌶️', desc: '异域神秘香料' },
-            { id: 't2', name: '神秘符文石', cat: 'prop', price: 300, stock: 1, icon: '🔮', desc: '【联动】可在化身纪佩戴于[佩]槽' }
+            { id:'jx_p1', name:'苏绣团扇（牡丹款）',      cat:'physical', price:800, realPrice:298, stock:3,  icon:'🌺', o2oType:'实体',  desc:'王雪萍匠师亲绣，纯蚕丝底，绣线可劈64丝，制作周期30天。', badge:'大师亲制', deliverDays:30 },
+            { id:'jx_p2', name:'苏绣香囊（双面定制）',     cat:'physical', price:600, realPrice:228, stock:5,  icon:'🌸', o2oType:'预定',  desc:'可定制正反两面图案，含名字或日期，情侣/婚庆首选。', badge:'私人定制', deliverDays:45 },
+            { id:'jx_o1', name:'苏绣小班工坊（周末班）',   cat:'offline',  price:480, realPrice:188, stock:8,  icon:'🪡', o2oType:'线下',  desc:'每期4人·2小时·完成一枚香囊·材料全包·可带朋友同来。', badge:'口碑推荐', deliverDays:0 },
+            { id:'jx_c1', name:'苏绣系统课（共20节）',     cat:'course',   price:450, realPrice:168, stock:999,icon:'🎓', o2oType:'线上',  desc:'从零到独立完成团扇，含针法库PDF·永久有效。', badge:'系统学习', deliverDays:0 },
         ]
     },
     'baizuozhen': {
-        title: '⚒️ 天工材料铺', npcName: '铁老三', npcEmoji: '👨‍🏭', theme: 'modal-header-ink',
-        greeting: '要打铁还是雕木头？我这儿材料管够！',
+        title: '⚒️ 百作镇·天工材料铺', npcName: '铁老三', npcEmoji: '👨‍🏭',
+        theme: 'modal-header-ink',
+        greeting: '要打铁还是雕木头？我这儿材料管够，最近还进了一批龙泉的陶土，品质绝了！',
         items: [
-            { id: 'b1', name: '沉香木料', cat: 'material', price: 45, stock: 5, icon: '🪵', desc: '【联动】可用于造物台合成扇骨' },
-            { id: 'b2', name: '高岭陶土', cat: 'material', price: 30, stock: 10, icon: '🏺', desc: '烧制瓷器的极品陶土' },
-            { id: 'b3', name: '天工绝密图纸', cat: 'collection', price: 800, stock: 1, icon: '📜', desc: '【联动】解锁造物台高级配方' }
+            { id:'bz_p1', name:'龙泉青瓷花器（梅子青）',  cat:'physical', price:1200,realPrice:458, stock:2,  icon:'🏺', o2oType:'实体',  desc:'张景春匠师手制·独立签名证书·每件窑变独一无二。', badge:'孤品绝版', deliverDays:60 },
+            { id:'bz_p2', name:'东阳木雕摆件（定制）',    cat:'physical', price:700, realPrice:268, stock:4,  icon:'🪵', o2oType:'预定',  desc:'可雕刻定制内容（人物/名言/纪念日），香樟木材质。', badge:'私人定制', deliverDays:60 },
+            { id:'bz_o1', name:'青瓷拉坯·亲子体验',      cat:'offline',  price:580, realPrice:228, stock:12, icon:'🎡', o2oType:'线下',  desc:'亲子同行·2大1小·3小时·成品由匠师烧制后寄出。', badge:'亲子首选', deliverDays:0 },
+            { id:'bz_o2', name:'木雕入门·周末体验营',    cat:'offline',  price:420, realPrice:158, stock:8,  icon:'🪵', o2oType:'线下',  desc:'2天集训·从零开始·完成一件浮雕小作品带走。', badge:'沉浸体验', deliverDays:0 },
+            { id:'bz_c1', name:'窑火哲学·张景春讲座',    cat:'course',   price:120, realPrice:48,  stock:999,icon:'🎤', o2oType:'线上',  desc:'90分钟公开讲座录播·谈青瓷与人生·附Q&A精华回放。', badge:'思想沉淀', deliverDays:0 },
+        ]
+    },
+    'qinglanjie': {
+        title: '🍵 青岚界·茶道雅舍', npcName: '茶师阿玲', npcEmoji: '🍵',
+        theme: 'modal-header-jade',
+        greeting: '慢着慢着，水还没到温，茶叶要醒一醒。你先坐，等这壶茶开了再说话。',
+        items: [
+            { id:'ql_p1', name:'明前龙井（手采礼盒）',    cat:'physical', price:480, realPrice:188, stock:8,  icon:'🍃', o2oType:'实体',  desc:'清明前手采·匠师监制烘焙·附产地证书与冲泡指南。', badge:'节气限定', deliverDays:5 },
+            { id:'ql_p2', name:'古法熏香线香（竹林香）',  cat:'physical', price:320, realPrice:118, stock:10, icon:'🪔', o2oType:'实体',  desc:'非遗香师古法调配，天然植物香料，无人工添加，约60根/盒。', badge:'非遗配方', deliverDays:7 },
+            { id:'ql_o1', name:'私人茶席体验（2人）',     cat:'offline',  price:560, realPrice:218, stock:6,  icon:'🫖', o2oType:'线下',  desc:'90分钟·一师一席·从识茶到冲泡·含带走茶样50克。', badge:'私密小圈', deliverDays:0 },
+            { id:'ql_c1', name:'茶道美学入门课',          cat:'course',   price:180, realPrice:68,  stock:999,icon:'📹', o2oType:'线上',  desc:'8节视频课·识茶器、懂茶礼、会冲泡·适合茶道零基础。', badge:'入门首选', deliverDays:0 },
+        ]
+    },
+    'wanyicheng': {
+        title: '🎭 万艺城·梨园百货', npcName: '陈掌柜', npcEmoji: '🎭',
+        theme: 'modal-header-red',
+        greeting: '哟，客官来啦！今儿有新到的皮影和唢呐谱，来来来，进来看看！',
+        items: [
+            { id:'wy_p1', name:'皮影人偶（老生/小旦）',   cat:'physical', price:460, realPrice:178, stock:5,  icon:'🎭', o2oType:'实体',  desc:'驴皮手工刻制·全套上色·含操控签及收藏证书。', badge:'非遗手作', deliverDays:20 },
+            { id:'wy_p2', name:'戏曲脸谱摆件（关公）',    cat:'physical', price:380, realPrice:138, stock:8,  icon:'😤', o2oType:'实体',  desc:'纯手绘工艺脸谱，桐木底，丙烯颜料，寓意镇宅驱邪。', badge:'手绘孤品', deliverDays:14 },
+            { id:'wy_o1', name:'皮影戏体验工坊',          cat:'offline',  price:390, realPrice:148, stock:10, icon:'🎪', o2oType:'线下',  desc:'亲手操控皮影演一出《西游记》片段，拍照留念，2小时。', badge:'趣味体验', deliverDays:0 },
+        ]
+    },
+    'tongxiyu': {
+        title: '🐪 丝路商行·异域珍品', npcName: '阿里法德', npcEmoji: '👳‍♂️',
+        theme: 'modal-header-gold',
+        greeting: '嗨！远方的朋友！刚到一批和田玉料和西域香料，新鲜着呢！',
+        items: [
+            { id:'tx_p1', name:'和田玉平安扣吊坠',        cat:'physical', price:880, realPrice:338, stock:3,  icon:'🪬', o2oType:'实体',  desc:'新疆和田白玉，天然无染色，附玉石鉴定证书。', badge:'原产地直供', deliverDays:7 },
+            { id:'tx_p2', name:'丝绸之路香料礼盒',        cat:'physical', price:350, realPrice:128, stock:6,  icon:'🌶️', o2oType:'实体',  desc:'肉桂、番红花等6种香料，印花礼盒包装。', badge:'异域特产', deliverDays:5 },
         ]
     },
     'senzhidiyu': {
-        title: '🧚 精灵杂货', npcName: '绿灵', npcEmoji: '🧚', theme: 'modal-header-jade',
-        greeting: '森林的馈赠，只要你带走，就是缘分~',
+        title: '🧚 森之杂货·自然馈赠', npcName: '绿灵', npcEmoji: '🧚',
+        theme: 'modal-header-jade',
+        greeting: '轻声点，小鹿刚在这边喝完水~ 这里的每一件都是森林的心意，带走好吗？',
         items: [
-            { id: 's1', name: '紫苏叶', cat: 'material', price: 10, stock: 20, icon: '🌿', desc: '新鲜草药' },
-            { id: 's2', name: '百年红酒', cat: 'prop', price: 150, stock: 2, icon: '🍷', desc: '【联动】可作为礼物送给NPC' }
+            { id:'sz_p1', name:'野生松茸干（礼盒装）',    cat:'physical', price:580, realPrice:218, stock:4,  icon:'🍄', o2oType:'实体',  desc:'云南高山松茸·人工拣选·自然晾晒·附溯源码。', badge:'山林珍品', deliverDays:5 },
+            { id:'sz_p2', name:'竹编蒸笼（三层套装）',    cat:'physical', price:420, realPrice:158, stock:6,  icon:'🎋', o2oType:'实体',  desc:'竹编非遗传承人手作，天然毛竹，可直接上灶使用。', badge:'非遗手作', deliverDays:10 },
         ]
     },
-    'default': {
-        title: '🏪 九州云商', npcName: '云掌柜', npcEmoji: '📦', theme: 'modal-header-gold',
-        greeting: '客官随便看，万物阁里的货全九州都有！',
-        items: [
-            { id: 'd1', name: '苏绣丝线', cat: 'material', price: 20, stock: 10, icon: '🧵', desc: '基础合成材料' },
-            { id: 'd2', name: '沉香木料', cat: 'material', price: 45, stock: 5, icon: '🪵', desc: '基础合成材料' }
-        ]
-    }
 };
+
 
 let currentShopRegion = 'default';
 let currentShopCategory = 'material';
@@ -715,7 +764,7 @@ window.openShop = function() {
     }
 
     const tabs = document.querySelectorAll('.shop-tabs .shop-tab');
-    if(tabs.length > 0) switchShopTab('material', tabs[0]);
+    if(tabs.length > 0) switchShopTab('physical', tabs[0]);
     
     openModal('shop-panel');
     if (typeof playSound === 'function') playSound('click');
@@ -733,40 +782,59 @@ function renderShopItems() {
     if (!grid) return;
 
     const shopData = REGION_SHOPS[currentShopRegion] || REGION_SHOPS['default'];
-    const items = shopData.items.filter(item => item.cat === currentShopCategory);
-    
-    if (items.length === 0) {
-        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#aaa; padding:40px;">掌柜正在进货中...</div>`;
+
+    // 注入节气商品
+    const seasonalItems = (typeof SolarTermEngine !== 'undefined') ? SolarTermEngine.getSeasonalItems() : [];
+    const allItems = [...shopData.items, ...seasonalItems];
+
+    const catMap = { material:'原料', physical:'实体手信', offline:'线下体验', course:'线上课程', seasonal:'节气限定', prop:'奇珍道具', collection:'绝版图纸' };
+    const filtered = currentShopCategory === 'all' ? allItems : allItems.filter(i => i.cat === currentShopCategory);
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#aaa; padding:40px; font-family:var(--font-kai);">掌柜正在进货中，稍后再来…</div>`;
         return;
     }
 
-    grid.innerHTML = items.map(item => {
-        const isSoldOut = item.stock <= 0;
+    const typeStyle = {
+        '实体': { bg:'#fde8e8', color:'var(--cinnabar)', label:'📦 实体直邮' },
+        '线下': { bg:'#e8f4ef', color:'var(--jade)',     label:'📍 到店体验' },
+        '线上': { bg:'#e6f0fa', color:'#4a90e2',         label:'💻 即时解锁' },
+        '预定': { bg:'#f0ebf6', color:'#8e44ad',         label:'✏️ 私人定制' },
+    };
+
+    grid.innerHTML = filtered.map(item => {
+        const isSoldOut  = item.stock <= 0;
         const finalPrice = Math.floor(item.price * currentDiscount);
-        const isDiscounted = currentDiscount < 1.0;
+        const isDisc     = currentDiscount < 1.0;
+        const ts         = typeStyle[item.o2oType] || { bg:'#eee', color:'#666', label: item.o2oType || '' };
+        const realTag    = item.realPrice ? `<div style="font-size:11px;color:#aaa;margin-bottom:4px;">现实价约 ¥${item.realPrice}</div>` : '';
+        const deliverTag = item.deliverDays > 0
+            ? `<div style="font-size:10px;color:#888;margin-bottom:6px;">⏱ 发货 ${item.deliverDays} 天</div>`
+            : (item.o2oType==='线下'||item.o2oType==='线上') ? `<div style="font-size:10px;color:${ts.color};margin-bottom:6px;">${item.o2oType==='线下'?'📍 预约后到店':'⚡ 购买后即时获取'}</div>` : '';
+        const badgeHtml  = item.badge ? `<div style="position:absolute;top:0;right:0;background:${ts.color};color:white;font-size:10px;padding:2px 7px;border-bottom-left-radius:7px;">${item.badge}</div>` : '';
 
         return `
-        <div class="shop-item ${isSoldOut ? 'sold-out' : ''}">
-            ${isDiscounted && !isSoldOut ? `<div class="discount-tag">特惠</div>` : ''}
+        <div class="shop-item ${isSoldOut ? 'sold-out' : ''}" style="position:relative; overflow:hidden;">
+            ${badgeHtml}
+            ${isDisc && !isSoldOut ? '<div class="discount-tag">特惠</div>' : ''}
+            <div style="font-size:9px;font-weight:bold;padding:2px 7px;border-radius:10px;background:${ts.bg};color:${ts.color};margin-bottom:6px;display:inline-block;">${ts.label}</div>
             <div class="shop-item-icon">${item.icon}</div>
-            <div class="shop-item-name">${item.name}</div>
-            <div class="shop-item-desc" style="color:var(--jade);">${item.desc}</div>
-            
+            <div class="shop-item-name" style="font-size:13px;line-height:1.3;">${item.name}</div>
+            <div class="shop-item-desc" style="color:#888;font-size:11px;line-height:1.4;margin:5px 0;">${item.desc}</div>
+            ${realTag}${deliverTag}
             <div class="shop-item-price">
-                ${isDiscounted ? `<span style="text-decoration:line-through; color:#aaa; font-size:11px; margin-right:4px;">${item.price}</span>` : ''}
+                ${isDisc ? `<span style="text-decoration:line-through;color:#aaa;font-size:11px;margin-right:4px;">${item.price}</span>` : ''}
                 🪙 ${finalPrice}
             </div>
-            <div style="font-size:11px; color:#888; margin-bottom:8px;">库存: ${item.stock}</div>
-            
-            <button class="btn btn-sm ${isSoldOut ? 'btn-ghost' : 'btn-outline'}" 
-                    style="width:100%; transition:all 0.2s;" 
-                    onclick="buyItem('${item.id}')" 
-                    ${isSoldOut ? 'disabled' : ''}>
-                ${isSoldOut ? '已售罄' : '购买'}
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">库存: ${isSoldOut ? '<span style="color:var(--cinnabar);">已售罄</span>' : item.stock}</div>
+            <button class="btn btn-sm ${isSoldOut ? 'btn-ghost' : 'btn-outline'}" style="width:100%;transition:all 0.2s;"
+                onclick="buyItem('${item.id}')" ${isSoldOut ? 'disabled' : ''}>
+                ${isSoldOut ? '已售罄' : (item.o2oType==='线下'?'预约体验': item.o2oType==='线上'?'立即解锁':item.o2oType==='预定'?'申请定制':'购买')}
             </button>
         </div>`;
     }).join('');
 }
+
 
 window.buyItem = function(itemId) {
     const shopData = REGION_SHOPS[currentShopRegion] || REGION_SHOPS['default'];
@@ -2158,60 +2226,202 @@ window.executeCrafting = function() {
 // ============================================================
 const WorldTimeEngine = {
     states: [
-        { id: 'dawn',  name: '晨曦 · 万物苏醒', icon: '🌅', color: 'var(--jade)', buff: '万物生发：极品晨露等稀有材料现世' },
-        { id: 'noon',  name: '午时 · 艳阳高照', icon: '☀️', color: '#ffb347', buff: '阳气鼎盛：视野开阔，体力充沛' },
-        { id: 'dusk',  name: '黄昏 · 逢魔时刻', icon: '🌇', color: 'var(--cinnabar)', buff: '阴阳交界：百鬼夜行即将开启' },
-        { id: 'night', name: '子夜 · 星汉灿烂', icon: '🌌', color: 'var(--purple)', buff: '天道共鸣：隐世鬼市商人出没' }
+        { id: 'dawn',  name: '晨曦 · 万物苏醒', icon: '🌅', color: 'var(--jade)',    buff: '万物生发：极品晨露等稀有材料现世' },
+        { id: 'noon',  name: '午时 · 艳阳高照', icon: '☀️',  color: '#ffb347',       buff: '阳气鼎盛：视野开阔，体力充沛' },
+        { id: 'dusk',  name: '黄昏 · 逢魔时刻', icon: '🌇',  color: 'var(--cinnabar)',buff: '阴阳交界：百鬼夜行即将开启' },
+        { id: 'night', name: '子夜 · 星汉灿烂', icon: '🌌',  color: 'var(--purple)', buff: '天道共鸣：隐世鬼市商人出没' }
     ],
     tickInterval: null,
 
     start() {
         if (this.tickInterval) clearInterval(this.tickInterval);
-        
-        // 初始渲染
         this.updateUI();
-
-        // 真实时间每 30 秒，游戏内流逝一个时辰
+        SolarTermEngine.check();   // 登录时立即检查节气
         this.tickInterval = setInterval(() => {
             gameState.worldState = (gameState.worldState + 1) % 4;
             this.updateUI();
-            
-            // 触发全服时辰更替事件
             GameEvent.emit('TIME_CHANGED', this.states[gameState.worldState]);
             SaveManager.save();
-        }, 30000); 
+        }, 30000);
     },
 
     updateUI() {
-        // 🛡️ 强力防错：如果本地存档里的时间数据错乱，强制重置为 1 (午时)
         let ws = parseInt(gameState.worldState);
-        if (isNaN(ws) || ws < 0 || ws > 3) {
-            ws = 1;
-            gameState.worldState = 1;
-        }
-        
+        if (isNaN(ws) || ws < 0 || ws > 3) { ws = 1; gameState.worldState = 1; }
         const state = this.states[ws];
-        if (!state) return; // 终极保险
-
+        if (!state) return;
         const iconEl = document.getElementById('world-icon');
         const timeEl = document.getElementById('world-time');
         const buffEl = document.getElementById('world-buff');
-        
-        if (iconEl && timeEl && buffEl) {
-            iconEl.innerText = state.icon;
-            timeEl.innerText = state.name;
-            timeEl.style.color = state.color;
-            buffEl.innerText = state.buff;
-        }
-
-        // 同步探索地图的光影
-        if (typeof updateWorldEcology === 'function') {
-            updateWorldEcology(ws, state.id);
-        }
+        if (iconEl) iconEl.innerText = state.icon;
+        if (timeEl) { timeEl.innerText = state.name; timeEl.style.color = state.color; }
+        if (buffEl) buffEl.innerText = state.buff;
+        if (typeof updateWorldEcology === 'function') updateWorldEcology(ws, state.id);
     }
 };
 
-// 在 auth.js 的 _initPlayerSession 中调用 WorldTimeEngine.start()
+// ============================================================
+// 节气引擎 SolarTermEngine
+// ============================================================
+const SOLAR_TERMS = [
+    { name: '小寒', month: 1,  day: 6,  icon: '❄️',  color: '#a0c4ff',
+      buff: '严冬淬炼：陶艺造物大成功率 +15%',
+      shopHint: '窑主特供「冬日御寒茶」限时上架',
+      activity: { name: '围炉夜话·煮茶局', reward: '暖冬茶汤', stones: 80 } },
+    { name: '大寒', month: 1,  day: 20, icon: '🌨️', color: '#bde0fe',
+      buff: '岁末回望：获得双倍传习录经验',
+      shopHint: '腊月限定「岁寒三友套装」补货',
+      activity: { name: '岁末归仓·总结局', reward: '年终手信', stones: 120 } },
+    { name: '立春', month: 2,  day: 4,  icon: '🌱',  color: '#b7e4c7',
+      buff: '万物复苏：采集材料数量 +20%',
+      shopHint: '春耕限定「嫩芽丝线」开放预购',
+      activity: { name: '迎春踏青·采茶局', reward: '明前春茶', stones: 100 } },
+    { name: '雨水', month: 2,  day: 19, icon: '🌧️', color: '#90e0ef',
+      buff: '润物无声：知音羁绊成长速度 +25%',
+      shopHint: '雨季特供「春雨纸浆」独家发售',
+      activity: { name: '听雨抚琴·知音局', reward: '雨声碎片', stones: 90 } },
+    { name: '惊蛰', month: 3,  day: 6,  icon: '⚡',  color: '#f4d35e',
+      buff: '万物惊醒：探索隐藏节点出现率翻倍',
+      shopHint: '惊蛰限定「百虫图鉴」解锁',
+      activity: { name: '曲水流觞·泼墨局', reward: '春雷拓印', stones: 100 } },
+    { name: '春分', month: 3,  day: 20, icon: '☯️',  color: '#c8b6ff',
+      buff: '阴阳平衡：所有属性成长均衡 +10%',
+      shopHint: '春分节气「彩蛋剪纸」限时发售',
+      activity: { name: '红纸翻飞·剪纸局', reward: '春分剪花', stones: 110 } },
+    { name: '清明', month: 4,  day: 5,  icon: '🌿',  color: '#52b788',
+      buff: '慎终追远：传习录感悟深度 +30%',
+      shopHint: '清明限定「青团香囊」开放预约',
+      activity: { name: '古法制茶·焙茶局', reward: '清明前茶', stones: 150 } },
+    { name: '谷雨', month: 4,  day: 20, icon: '🌾',  color: '#95d5b2',
+      buff: '百谷滋润：物品合成材料消耗 -10%',
+      shopHint: '谷雨特供「雨前龙井」大师亲制',
+      activity: { name: '静心观火·开窑局', reward: '谷雨釉色', stones: 90 } },
+    { name: '立夏', month: 5,  day: 6,  icon: '☀️',  color: '#f9c74f',
+      buff: '夏日生长：技艺经验值获取 +20%',
+      shopHint: '初夏限定「荷叶拓染布」开放',
+      activity: { name: '手作共创·体验局', reward: '荷香碎片', stones: 100 } },
+    { name: '小满', month: 5,  day: 21, icon: '🌻',  color: '#f9a825',
+      buff: '小满盈仓：商行所有商品额外 9.5 折',
+      shopHint: '小满特惠日：全场非遗手信 9.5 折',
+      activity: { name: '穿针引线·苏绣局', reward: '满绣团扇', stones: 130 } },
+    { name: '芒种', month: 6,  day: 6,  icon: '🌾',  color: '#e9c46a',
+      buff: '芒种播种：拜师成功率 +20%',
+      shopHint: '仲夏限定「麦穗书签」师门礼包',
+      activity: { name: '笔墨纸砚·文房局', reward: '芒种墨香', stones: 80 } },
+    { name: '夏至', month: 6,  day: 21, icon: '🌞',  color: '#ff9f1c',
+      buff: '至阳极盛：灵石探索收益 +25%',
+      shopHint: '夏至限定「端午五彩绳」特供',
+      activity: { name: '彩线缠丝·结绳局', reward: '夏至五彩', stones: 120 } },
+    { name: '小暑', month: 7,  day: 7,  icon: '🔥',  color: '#e07a5f',
+      buff: '暑气蒸腾：窑变概率大幅提升',
+      shopHint: '伏天限定「冰裂纹青瓷」限量开窑',
+      activity: { name: '静心观火·开窑局', reward: '暑色窑变', stones: 140 } },
+    { name: '大暑', month: 7,  day: 23, icon: '🌡️', color: '#c1440e',
+      buff: '三伏淬炼：金属器物造物大成功率 +30%',
+      shopHint: '大暑特供「伏茶·消暑香囊」套装',
+      activity: { name: '锻金铸纹·錾刻局', reward: '烈日金纹', stones: 150 } },
+    { name: '立秋', month: 8,  day: 7,  icon: '🍂',  color: '#e07a5f',
+      buff: '金风送爽：织绣类物品合成加成 +15%',
+      shopHint: '初秋限定「金叶书衣」独家发售',
+      activity: { name: '同好相逢·分享局', reward: '秋实分享', stones: 100 } },
+    { name: '处暑', month: 8,  day: 23, icon: '🌤️', color: '#f4a261',
+      buff: '暑气消散：体力恢复速度加快',
+      shopHint: '处暑特供「秋凉香枕」现货补充',
+      activity: { name: '焚香静坐·品香局', reward: '处暑香薰', stones: 90 } },
+    { name: '白露', month: 9,  day: 8,  icon: '🌫️', color: '#a8dadc',
+      buff: '白露凝珠：稀有材料采集概率 +20%',
+      shopHint: '白露限定「露草染布」手工特供',
+      activity: { name: '古法制茶·焙茶局', reward: '白露秋茶', stones: 160 } },
+    { name: '秋分', month: 9,  day: 23, icon: '🍁',  color: '#e76f51',
+      buff: '秋实丰收：背包容量临时扩充 +20 格',
+      shopHint: '秋分丰收祭：限定「五谷香囊」',
+      activity: { name: '非遗研学·交流局', reward: '秋分图鉴', stones: 120 } },
+    { name: '寒露', month: 10, day: 8,  icon: '🍂',  color: '#d4a373',
+      buff: '寒意渐浓：制茶类活动奖励翻倍',
+      shopHint: '寒露特供「霜降大红袍」预售',
+      activity: { name: '围炉夜话·煮茶局', reward: '寒露红茶', stones: 130 } },
+    { name: '霜降', month: 10, day: 23, icon: '❄️',  color: '#caf0f8',
+      buff: '霜降木气：木雕类物品稀有度提升',
+      shopHint: '霜降限定「霜染枫叶书签」特供',
+      activity: { name: '闻香识木·雕刻局', reward: '霜降木香', stones: 110 } },
+    { name: '立冬', month: 11, day: 7,  icon: '🌬️', color: '#90e0ef',
+      buff: '万物收藏：传习录可额外存档一次',
+      shopHint: '初冬限定「暖炉香薰套装」上架',
+      activity: { name: '焚香静坐·品香局', reward: '立冬香炉', stones: 100 } },
+    { name: '小雪', month: 11, day: 22, icon: '🌨️', color: '#e0f7fa',
+      buff: '初雪洁净：造物台出品品质提升一级',
+      shopHint: '小雪限定「雪白瓷釉」独家配方',
+      activity: { name: '揉泥制胎·陶艺局', reward: '初雪素胎', stones: 120 } },
+    { name: '大雪', month: 12, day: 7,  icon: '❄️',  color: '#b8d8d8',
+      buff: '大雪封山：所有雅集体验时长 +50%',
+      shopHint: '大雪限定「岁寒松竹梅套装」',
+      activity: { name: '听雨抚琴·知音局', reward: '大雪曲谱', stones: 140 } },
+    { name: '冬至', month: 12, day: 22, icon: '🌑',  color: '#6c757d',
+      buff: '冬至一阳生：所有技艺属性成长 +20%（今日特惠）',
+      shopHint: '冬至大节：全场匠师手信 8.5 折 · 限时一天',
+      activity: { name: '围炉夜话·煮茶局', reward: '冬至汤圆', stones: 200 } },
+];
+
+const SolarTermEngine = {
+    getCurrentTerm() {
+        const now   = new Date();
+        const month = now.getMonth() + 1;
+        const day   = now.getDate();
+        // 找最近已过的节气
+        let matched = null;
+        for (const term of SOLAR_TERMS) {
+            if (term.month < month || (term.month === month && term.day <= day)) {
+                matched = term;
+            }
+        }
+        return matched || SOLAR_TERMS[SOLAR_TERMS.length - 1];
+    },
+
+    check() {
+        const term = this.getCurrentTerm();
+        if (!term) return;
+        gameState.currentSolarTerm = term.name;
+
+        // 更新 HUD buff 文字（若和世界时辰不冲突，拼接在一起）
+        const buffEl = document.getElementById('world-buff');
+        if (buffEl) {
+            buffEl.innerHTML = `<span style="color:${term.color};">${term.icon} 节气·${term.name}：${term.buff}</span>`;
+        }
+
+        // 写入传习录
+        _appendXiulilu({
+            type: 'solar', icon: term.icon, color: term.color,
+            title: `节气·${term.name}`,
+            desc:  term.buff,
+        });
+
+        // 节气弹窗（延迟2秒，不打扰登录动画）
+        setTimeout(() => {
+            if (typeof openSolarTermModal === 'function') openSolarTermModal();
+            else if (typeof showNotification === 'function') showNotification(`今日节气【${term.name}】— ${term.shopHint}`, term.icon, 6000);
+        }, 2500);
+    },
+
+    // 返回当前节气的商城新品列表（供 REGION_SHOPS 用）
+    getSeasonalItems() {
+        const term = this.getCurrentTerm();
+        if (!term) return [];
+        return [
+            {
+                id:    `solar_${term.name}_1`,
+                name:  `【节气·${term.name}】${term.activity.reward}`,
+                cat:   'seasonal',
+                price: term.activity.stones,
+                stock: 12,
+                icon:  term.icon,
+                desc:  `节气限定·${term.name}特供，过期无补货`,
+                o2oType: '实体',
+                realPrice: 0,
+                tag: 'solar'
+            }
+        ];
+    }
+};
 
 // ============================================================
 // 十九、非遗百科 (纯净科普系统)
@@ -3023,3 +3233,459 @@ const AudioManager = {
 GameEvent.on('ENTER_SCENE', (sceneKey) => {
     AudioManager.playBGM(sceneKey);
 });
+
+// ============================================================
+// 传习录 · 技艺成长日志系统
+// ============================================================
+
+/** 向传习录追加一条记录（全局可调用） */
+function _appendXiulilu(entry) {
+    if (typeof gameState === 'undefined') return;
+    if (!gameState.xiulilu) gameState.xiulilu = [];
+    gameState.xiulilu.unshift({
+        ...entry,
+        time: Date.now()
+    });
+    if (gameState.xiulilu.length > 100) gameState.xiulilu.pop(); // 保留最近100条
+    if (typeof SaveManager !== 'undefined') SaveManager.save();
+}
+
+window.renderXiulilu = function() {
+    const container = document.getElementById('xiulilu-timeline');
+    if (!container) return;
+
+    const logs = gameState.xiulilu || [];
+
+    // ── 技艺成长汇总 ──
+    const skillSummary = _buildSkillSummary();
+
+    if (logs.length === 0 && skillSummary.total === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; color:rgba(255,255,255,0.4);">
+                <div style="font-size:48px; margin-bottom:16px; opacity:0.5;">📜</div>
+                <div style="font-family:var(--font-kai); font-size:16px; letter-spacing:2px;">传习录尚空</div>
+                <div style="font-size:12px; margin-top:8px;">参加雅集、拜访匠师、完成探索，皆可留下印记</div>
+            </div>`;
+        return;
+    }
+
+    const typeConfig = {
+        yaji:    { icon:'🍵', color:'#e89a65', label:'雅集印记' },
+        solar:   { icon:'🌿', color:'#7eb6a1', label:'节气感悟' },
+        craft:   { icon:'⚒️', color:'#d4af37', label:'造物记录' },
+        meet:    { icon:'🤝', color:'#c8a2c8', label:'知音相遇' },
+        explore: { icon:'🗺️', color:'#6cb4ee', label:'探索所得' },
+        achieve: { icon:'🏆', color:'#f4d03f', label:'成就解锁' },
+        order:   { icon:'📦', color:'#95a5a6', label:'手信寄出' },
+        default: { icon:'✦',  color:'#888',    label:'游历感悟' },
+    };
+
+    const timelineHtml = logs.map(log => {
+        const cfg = typeConfig[log.type] || typeConfig.default;
+        const dateStr = new Date(log.time).toLocaleDateString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+        return `
+        <div style="display:flex; gap:12px; padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="flex:0 0 36px; height:36px; border-radius:50%;
+                        background:rgba(255,255,255,0.06); border:1px solid ${cfg.color}44;
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:18px; flex-shrink:0;">${log.icon || cfg.icon}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+                    <span style="font-size:12px; color:${cfg.color}; font-weight:bold;">${cfg.label}</span>
+                    <span style="font-size:10px; color:rgba(255,255,255,0.3);">${dateStr}</span>
+                </div>
+                <div style="font-size:13px; color:#e8dcc8; font-family:var(--font-kai); line-height:1.6;">${log.title}</div>
+                ${log.desc ? `<div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:3px; line-height:1.5;">${log.desc}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        ${skillSummary.html}
+        <div style="margin-top:20px;">
+            <div style="font-size:12px; color:rgba(255,255,255,0.4); letter-spacing:2px; margin-bottom:10px; font-family:var(--font-kai);">— 游历足迹 —</div>
+            ${timelineHtml || '<div style="text-align:center;color:rgba(255,255,255,0.3);padding:20px;font-size:12px;">尚无记录</div>'}
+        </div>`;
+};
+
+function _buildSkillSummary() {
+    const traits = gameState?.lingshi?.traits || { craft:0, explore:0, social:0, zen:0 };
+    const yajiCount    = (gameState.xiulilu||[]).filter(l=>l.type==='yaji').length;
+    const orderCount   = (gameState.handsignOrders||[]).length;
+    const bondCount    = Object.keys(gameState?.bonds||{}).length;
+    const total = yajiCount + orderCount + bondCount;
+
+    const items = [
+        { icon:'🍵', label:'赴雅集',  val:yajiCount,  color:'#e89a65' },
+        { icon:'🤝', label:'结知音',  val:bondCount,  color:'#c8a2c8' },
+        { icon:'📦', label:'寄手信',  val:orderCount, color:'#7eb6a1' },
+        { icon:'🔥', label:'匠心值',  val:Math.floor(traits.craft),   color:'var(--cinnabar)' },
+        { icon:'🍃', label:'寻幽值',  val:Math.floor(traits.explore), color:'var(--jade)' },
+        { icon:'🧘', label:'禅定值',  val:Math.floor(traits.zen),     color:'#8a6da8' },
+    ];
+
+    const html = `
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:4px;">
+            ${items.map(it=>`
+            <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+                        border-radius:10px; padding:12px 8px; text-align:center;">
+                <div style="font-size:22px; margin-bottom:4px;">${it.icon}</div>
+                <div style="font-size:20px; font-weight:bold; color:${it.color}; font-family:var(--font-kai);">${it.val}</div>
+                <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-top:2px;">${it.label}</div>
+            </div>`).join('')}
+        </div>`;
+    return { html, total };
+}
+
+
+// ============================================================
+// 知音系统增强 · 在 meditatePersona 中调用
+// ============================================================
+
+/** 增加与某 NPC 的亲密度，并更新知音卡 */
+window.addIntimacy = function(npcName, amount = 5, eventDesc = '') {
+    if (!gameState.intimacy)  gameState.intimacy  = {};
+    if (!gameState.bonds)     gameState.bonds     = {};
+
+    gameState.intimacy[npcName]  = Math.min(100, (gameState.intimacy[npcName]  || 0) + amount);
+    if (!gameState.bonds[npcName]) {
+        gameState.bonds[npcName] = { lastEvent:'', lastTime:0, gifts:0, letters:0 };
+    }
+    if (eventDesc) {
+        gameState.bonds[npcName].lastEvent = eventDesc;
+        gameState.bonds[npcName].lastTime  = Date.now();
+    }
+
+    _appendXiulilu({ type:'meet', icon:'🤝', color:'#c8a2c8',
+        title: `与【${npcName}】的羁绊加深`,
+        desc:  eventDesc || `亲密度 +${amount}，当前: ${gameState.intimacy[npcName]}`
+    });
+
+    if (typeof SaveManager !== 'undefined') SaveManager.save();
+};
+
+/** 渲染知音羁绊卡列表（供 meditatePersona 内调用） */
+function _renderBondCards() {
+    const socialList = document.getElementById('social-bonds-list');
+    if (!socialList) return;
+
+    const intimacy = gameState.intimacy || {};
+    const bonds    = gameState.bonds    || {};
+
+    const BOND_LEVELS = [
+        { min:0,  label:'陌路',   icon:'👤', color:'#888' },
+        { min:20, label:'相识',   icon:'🤝', color:'#7eb6a1' },
+        { min:50, label:'知音',   icon:'💛', color:'#e89a65' },
+        { min:80, label:'挚友',   icon:'💖', color:'var(--cinnabar)' },
+        { min:100,label:'灵魂知己',icon:'✨', color:'var(--gold)' },
+    ];
+    const getLevel = val => {
+        let lv = BOND_LEVELS[0];
+        for (const l of BOND_LEVELS) { if (val >= l.min) lv = l; }
+        return lv;
+    };
+
+    const entries = Object.entries(intimacy).filter(([k,v]) => !k.includes('_') && v > 0);
+    if (entries.length === 0) {
+        socialList.innerHTML = '<li style="color:#888;font-size:13px;justify-content:center;padding:15px 0;">九州之大，暂无故交</li>';
+        return;
+    }
+
+    entries.sort(([,a],[,b]) => b - a);
+
+    socialList.innerHTML = entries.map(([name, val]) => {
+        const lv   = getLevel(val);
+        const bond = bonds[name] || {};
+        const pct  = Math.min(val, 100);
+        const lastDate = bond.lastTime ? new Date(bond.lastTime).toLocaleDateString('zh-CN', {month:'numeric',day:'numeric'}) : '';
+        const canGift  = val < 100;
+        const canYaji  = val >= 50;
+
+        return `
+        <li style="flex-direction:column; align-items:stretch; gap:8px; padding:14px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-bottom:8px; list-style:none;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:1.5px solid ${lv.color};display:flex;align-items:center;justify-content:center;font-size:18px;">${lv.icon}</div>
+                    <div>
+                        <div style="color:#e8dcc8;font-size:14px;font-family:var(--font-kai);">${name}</div>
+                        <div style="font-size:11px;color:${lv.color};margin-top:1px;">${lv.label} · 羁绊 ${val}</div>
+                    </div>
+                </div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.3);">${lastDate}</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3);border-radius:4px;height:5px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${lv.color}88,${lv.color});transition:width 0.8s ease;"></div>
+            </div>
+            ${bond.lastEvent ? `<div style="font-size:11px;color:rgba(255,255,255,0.35);font-style:italic;padding:0 2px;">"${bond.lastEvent}"</div>` : ''}
+            <div style="display:flex;gap:8px;margin-top:2px;">
+                ${canGift  ? `<button onclick="sendGiftToBond('${name}')" style="flex:1;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);color:#d4af37;padding:5px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font-kai);">🎁 赠礼</button>` : ''}
+                <button onclick="sendLetterToBond('${name}')" style="flex:1;background:rgba(126,182,161,0.1);border:1px solid rgba(126,182,161,0.3);color:#7eb6a1;padding:5px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font-kai);">✉️ 飞鸽</button>
+                ${canYaji  ? `<button onclick="showNotification('已向【'+encodeURIComponent('${name}')+'】发送雅集邀约！','🍵')" style="flex:1;background:rgba(232,154,101,0.1);border:1px solid rgba(232,154,101,0.3);color:#e89a65;padding:5px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font-kai);">🍵 邀雅集</button>` : ''}
+            </div>
+        </li>`;
+    }).join('');
+}
+
+window.sendGiftToBond = function(npcName) {
+    const inv = gameState.inventory || {};
+    const giftItems = Object.entries(inv).filter(([k,v]) => v > 0);
+    if (giftItems.length === 0) { showNotification('行囊里暂无可赠之物', '🎁'); return; }
+
+    // 简单弹窗选礼物
+    const firstItem = giftItems[0][0];
+    if (typeof spendStones === 'function' && gameState.inventory[firstItem] > 0) {
+        gameState.inventory[firstItem]--;
+        addIntimacy(npcName, 10, `赠予【${firstItem}】，情谊更深`);
+        showNotification(`已将【${firstItem}】赠予 ${npcName}，羁绊 +10！`, '🎁', 4000);
+        if (typeof meditatePersona === 'function') meditatePersona();
+    }
+};
+
+window.sendLetterToBond = function(npcName) {
+    const bond = gameState.bonds[npcName] || {};
+    bond.letters = (bond.letters || 0) + 1;
+    if (!gameState.bonds[npcName]) gameState.bonds[npcName] = bond;
+    addIntimacy(npcName, 5, `互通书信，心意相知`);
+    showNotification(`飞鸽已传往 ${npcName} 处，羁绊 +5！`, '✉️', 3500);
+    if (typeof meditatePersona === 'function') meditatePersona();
+};
+
+// 补丁：在 meditatePersona 末尾调用 _renderBondCards
+const _origMeditate = window.meditatePersona;
+window.meditatePersona = function() {
+    if (typeof _origMeditate === 'function') _origMeditate();
+    _renderBondCards();
+};
+
+// ============================================================
+// 手信驿站系统
+// ============================================================
+
+window.openHandsignStation = function() {
+    // 填充可寄商品下拉（从背包中含"流转契约"或实物类已购商品）
+    const select = document.getElementById('hs-product-select');
+    if (select) {
+        const inv = gameState.inventory || {};
+        const opts = Object.entries(inv)
+            .filter(([k,v]) => v > 0 && (k.includes('流转契约') || k.includes('手信') || k.includes('团扇') || k.includes('茶杯') || k.includes('书签') || k.includes('香囊') || k.includes('皮影') || k.includes('摆件') || k.includes('脸谱') || k.includes('线香')))
+            .map(([k]) => `<option value="${k}">${k}</option>`)
+            .join('');
+        select.innerHTML = opts || '<option value="">行囊中暂无可寄手信</option>';
+    }
+    _renderHandsignOrders();
+    openModal('handsign-modal');
+};
+
+function _renderHandsignOrders() {
+    const container = document.getElementById('handsign-orders-list');
+    if (!container) return;
+    const orders = gameState.handsignOrders || [];
+    if (orders.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#aaa;padding:24px;font-size:13px;">尚无寄递记录</div>';
+        return;
+    }
+    const statusColor = { '待确认':'#e89a65','制作中':'#4a90e2','已发货':'#52b788','已签收':'#888' };
+    const statusIcon  = { '待确认':'⏳','制作中':'⚒️','已发货':'🚚','已签收':'✅' };
+    container.innerHTML = orders.map(o => {
+        const dateStr = new Date(o.time).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'});
+        const color   = statusColor[o.status] || '#888';
+        const icon    = statusIcon[o.status]  || '📦';
+        return `
+        <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:28px;">${icon}</div>
+            <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:13px;font-weight:bold;color:#333;">${o.product}</div>
+                    <span style="font-size:11px;background:${color}22;color:${color};padding:2px 8px;border-radius:10px;font-weight:bold;">${o.status}</span>
+                </div>
+                <div style="font-size:11px;color:#888;margin-top:4px;">收件：${o.name} · ${o.address}</div>
+                ${o.trackingCode ? `<div style="font-size:11px;color:#4a90e2;margin-top:3px;">快递单号：${o.trackingCode}</div>` : ''}
+                ${o.note ? `<div style="font-size:11px;color:#aaa;margin-top:3px;font-style:italic;">"${o.note}"</div>` : ''}
+                <div style="font-size:10px;color:#ccc;margin-top:4px;">下单日期：${dateStr}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.submitHandsignOrder = function() {
+    const product = document.getElementById('hs-product-select')?.value;
+    const name    = document.getElementById('hs-name')?.value.trim();
+    const phone   = document.getElementById('hs-phone')?.value.trim();
+    const address = document.getElementById('hs-address')?.value.trim();
+    const note    = document.getElementById('hs-note')?.value.trim();
+
+    if (!product) { showNotification('请先选择要寄送的手信', '⚠️'); return; }
+    if (!name)    { showNotification('请填写收件人姓名', '⚠️'); return; }
+    if (!phone || phone.length < 11) { showNotification('请填写有效的联系电话', '⚠️'); return; }
+    if (!address) { showNotification('请填写收件地址', '⚠️'); return; }
+
+    const orderId = 'HS' + Date.now().toString().slice(-8);
+    const order = { id: orderId, product, name, phone, address, note, status:'待确认', time: Date.now(), trackingCode: '' };
+
+    if (!gameState.handsignOrders) gameState.handsignOrders = [];
+    gameState.handsignOrders.unshift(order);
+
+    // 消耗背包中的物品
+    if (gameState.inventory[product]) gameState.inventory[product]--;
+
+    _appendXiulilu({ type:'order', icon:'📦', color:'#7eb6a1',
+        title: `寄出手信【${product}】`,
+        desc:  `收件人：${name}，${address.slice(0,15)}…`
+    });
+
+    if (typeof addIntimacy === 'function') {
+        // 寄手信给某位匠师，羁绊加深
+        addIntimacy('平台匠师', 8, `亲手将【${product}】寄往现实`);
+    }
+
+    SaveManager.save();
+
+    // 清空表单
+    ['hs-name','hs-phone','hs-address','hs-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+
+    showNotification(`手信订单【${orderId}】已提交！匠师将在 24 小时内确认并开始制作。`, '📮', 6000);
+    if (typeof playSound === 'function') playSound('achievement');
+    _renderHandsignOrders();
+
+    // 更新化身纪预览
+    _renderHandsignPreview();
+};
+
+/** 化身纪中的简要手信预览 */
+function _renderHandsignPreview() {
+    const container = document.getElementById('handsign-preview');
+    if (!container) return;
+    const orders = (gameState.handsignOrders || []).slice(0, 3);
+    if (orders.length === 0) {
+        container.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:12px;text-align:center;padding:14px 0;">尚未寄出任何手信</div>';
+        return;
+    }
+    const statusColor = { '待确认':'#e89a65','制作中':'#4a90e2','已发货':'#52b788','已签收':'#888' };
+    container.innerHTML = orders.map(o => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div>
+                <div style="font-size:13px;color:#e8dcc8;">${o.product}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px;">${o.address?.slice(0,20)}…</div>
+            </div>
+            <span style="font-size:11px;padding:2px 9px;border-radius:10px;background:${statusColor[o.status]+'22'};color:${statusColor[o.status]||'#888'};white-space:nowrap;">${o.status}</span>
+        </div>`).join('') +
+        `<div style="margin-top:10px;text-align:right;">
+            <button onclick="openHandsignStation()" style="background:transparent;border:none;color:var(--jade);font-size:12px;cursor:pointer;">查看全部订单 →</button>
+        </div>`;
+}
+
+// ── openShop 增强：注入节气商品 + 切到 physical 默认 ──
+const _origOpenShop = window.openShop;
+window.openShop = function() {
+    _origOpenShop();
+    // 注入节气商品（避免重复）
+    const shopData = REGION_SHOPS[currentShopRegion] || REGION_SHOPS['default'];
+    const seasonal = typeof SolarTermEngine !== 'undefined' ? SolarTermEngine.getSeasonalItems() : [];
+    seasonal.forEach(si => {
+        if (!shopData.items.find(i => i.id === si.id)) shopData.items.push(si);
+    });
+    // 默认显示实体手信
+    const firstTab = document.querySelector('.shop-tab');
+    if (firstTab) switchShopTab('physical', firstTab);
+};
+
+// ── buyItem 增强：线下体验生成核销码，记录传习录 ──
+const _origBuyItem = window.buyItem;
+window.buyItem = function(itemId) {
+    const shopData = REGION_SHOPS[currentShopRegion] || REGION_SHOPS['default'];
+    const seasonal = typeof SolarTermEngine !== 'undefined' ? SolarTermEngine.getSeasonalItems() : [];
+    const allItems = [...shopData.items, ...seasonal];
+    const item = allItems.find(i => i.id === itemId);
+    if (!item || item.stock <= 0) return;
+
+    const finalPrice = Math.floor(item.price * currentDiscount);
+    if (!spendStones(finalPrice)) {
+        showNotification('灵石不足，掌柜摇了摇头', '❌');
+        document.getElementById('shopkeeper-dialogue').innerText = "哎哟，客官，这灵石好像差了点意思啊？";
+        return;
+    }
+
+    item.stock--;
+
+    if (item.o2oType === '线下') {
+        // 生成6位核销码
+        const code = 'YJ' + Math.random().toString(36).slice(2,7).toUpperCase();
+        addItem(`${item.name}·核销码(${code})`, 1);
+        _appendXiulilu({ type:'craft', icon:'📍', color:'#7eb6a1',
+            title:`预约【${item.name}】`,
+            desc: `核销码：${code}，凭码到店体验`
+        });
+        showNotification(`预约成功！到店核销码：【${code}】已存入行囊。`, '📍', 6000);
+    } else if (item.o2oType === '线上') {
+        addItem(item.name, 1);
+        _appendXiulilu({ type:'craft', icon:'💻', color:'#4a90e2',
+            title:`解锁课程【${item.name}】`,
+            desc: '已加入学习列表，随时可观看'
+        });
+        showNotification(`课程【${item.name}】已解锁！可在传习录中查看。`, '📚', 4000);
+    } else if (item.o2oType === '预定') {
+        addItem('定制申请书', 1);
+        _appendXiulilu({ type:'order', icon:'✏️', color:'#8e44ad',
+            title:`提交定制申请【${item.name}】`,
+            desc: '匠师将在48小时内联系确认方案'
+        });
+        showNotification(`定制申请已提交！匠师将联系你确认细节。`, '✏️', 5000);
+    } else {
+        addItem(item.name, 1);
+        _appendXiulilu({ type:'order', icon:'📦', color:'#95a5a6',
+            title:`购入【${item.name}】`,
+            desc: item.deliverDays ? `预计 ${item.deliverDays} 天内发货` : '已加入行囊'
+        });
+        showNotification(`成功购买【${item.name}】！${item.deliverDays?'预计 '+item.deliverDays+' 天发货':''}`, '🛒', 4000);
+    }
+
+    document.getElementById('shop-current-stones').innerText = gameState.stones;
+    const thanks = ['多谢惠顾！', '好眼光！', '货真价实，您放心！'];
+    document.getElementById('shopkeeper-dialogue').innerText = thanks[Math.floor(Math.random()*thanks.length)];
+    renderShopItems();
+    if (typeof playSound === 'function') playSound('buy');
+};
+
+// ── switchMainView profile 钩子：补充传习录 + 手信预览渲染 ──
+const _origSwitch = window.switchMainView;
+window.switchMainView = function(viewId, dockEl) {
+    _origSwitch(viewId, dockEl);
+    if (viewId === 'view-profile') {
+        if (typeof renderXiulilu === 'function') renderXiulilu();
+        _renderHandsignPreview();
+    }
+};
+
+// ── 节气公告弹窗（由 SolarTermEngine.check 升级调用） ──
+window.openSolarTermModal = function() {
+    const term = typeof SolarTermEngine !== 'undefined' ? SolarTermEngine.getCurrentTerm() : null;
+    if (!term) return;
+    const header = document.getElementById('solar-term-modal-header');
+    const title  = document.getElementById('solar-term-modal-title');
+    const body   = document.getElementById('solar-term-modal-body');
+    if (!body) return;
+    if (header) header.style.background = `linear-gradient(135deg, ${term.color}cc, ${term.color}66)`;
+    if (title)  title.innerText = `${term.icon} 今日节气·${term.name}`;
+    body.innerHTML = `
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:60px;margin-bottom:10px;animation:float 3s ease-in-out infinite;">${term.icon}</div>
+            <div style="font-size:22px;font-weight:bold;color:${term.color};font-family:var(--font-kai);margin-bottom:6px;">${term.name}</div>
+            <div style="font-size:13px;color:#666;">${new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'})}</div>
+        </div>
+        <div style="background:${term.color}11;border-left:3px solid ${term.color};padding:14px 16px;border-radius:0 8px 8px 0;margin-bottom:14px;">
+            <div style="font-size:12px;color:${term.color};font-weight:bold;margin-bottom:5px;">✨ 节气增益</div>
+            <div style="font-size:13px;color:#444;line-height:1.6;">${term.buff}</div>
+        </div>
+        <div style="background:#fffdf5;border:1px dashed #e8c97a;padding:14px 16px;border-radius:8px;margin-bottom:14px;">
+            <div style="font-size:12px;color:#c9a83c;font-weight:bold;margin-bottom:5px;">🛒 商行上新</div>
+            <div style="font-size:13px;color:#555;line-height:1.6;">${term.shopHint}</div>
+        </div>
+        <div style="background:#f0f9f5;border:1px dashed var(--jade);padding:14px 16px;border-radius:8px;">
+            <div style="font-size:12px;color:var(--jade);font-weight:bold;margin-bottom:5px;">🍵 节气雅集</div>
+            <div style="font-size:13px;color:#444;line-height:1.6;">
+                <strong>${term.activity.name}</strong><br>
+                参与可获得【${term.activity.reward}】+ ${term.activity.stones} 灵石
+            </div>
+        </div>`;
+    openModal('solar-term-modal');
+};

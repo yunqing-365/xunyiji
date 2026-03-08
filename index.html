@@ -75,14 +75,6 @@
                 </div>
             </div>
         </div>
-            
-                <div class="avatar avatar-sm" style="font-size:18px;">🧭</div>
-                <div class="flex-col">
-                    <span id="display-player-name" class="player-name-tag" style="color:var(--ink); font-weight:normal; margin-left: 6px;">1</span>
-                    <span class="text-small text-sub" style="margin-left: 6px; font-size: 11px;">Lv.1 初入江湖</span>
-                </div>
-            </div>
-        </div>
 
         <div class="header-center">
             <div id="world-clock-hud" style="background: rgba(30, 26, 22, 0.85); border: 1.5px solid var(--gold); padding: 6px 20px; border-radius: 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); cursor: pointer;" onclick="showNotification('九州灵气随着时辰流转，某些奇遇只在子夜现世...', '🌌')">
@@ -294,27 +286,6 @@ onclick="enterScene('senzhidiyu')">
         </div>
 
 
-<div id="fragment-gallery-modal" class="modal" style="width: 800px; background: #1a1816; border: 1px solid var(--gold);">
-    <div class="modal-header" style="background: transparent; border-bottom: 1px dashed rgba(212,175,55,0.3);">
-        <h3 style="color: var(--gold); letter-spacing: 2px;">🧩 九州残卷图鉴</h3>
-        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-gallery-modal')">×</button>
-    </div>
-    <div class="modal-content" style="padding: 20px;">
-        <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">收集流落九州的特定灵物，唤醒残卷，解锁关于非遗的特殊隐藏信息与大世界奇遇线索。</p>
-        <div id="fragment-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-            </div>
-    </div>
-</div>
-
-<div id="fragment-detail-modal" class="modal" style="width: 600px; background: #2c2a28; color: #e8dcc8; border: 1px solid var(--gold);">
-    <div class="modal-header" style="background: transparent; border-bottom: 1px solid #444;">
-        <h3 id="fragment-detail-title" style="color: var(--gold);">残卷详情</h3>
-        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-detail-modal')">×</button>
-    </div>
-    <div class="modal-content" style="padding: 25px;" id="fragment-detail-content">
-        </div>
-</div>
-
 <div id="view-activity" class="view-container system-layout">
             <div class="section-title">
                 <div>🎊 活动中心 <span class="subtitle" style="margin-left:10px;">限时活动、节庆庆典、灯谜大会</span></div>
@@ -475,6 +446,25 @@ onclick="enterScene('senzhidiyu')">
                         </div>
                         <div class="achievement-grid" id="dynamic-achievement-grid" style="margin-top: 15px;"></div>
                     </div>
+
+                    <!-- 传习录 -->
+                    <div class="profile-card-v2" style="grid-column: 1 / -1;">
+                        <div class="card-v2-header" style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                            <span>📜 传习录 (技艺成长日志)</span>
+                            <button onclick="renderXiulilu()" style="background:transparent;border:1px solid rgba(126,182,161,0.4);color:var(--jade);padding:4px 12px;border-radius:12px;cursor:pointer;font-size:12px;">刷新</button>
+                        </div>
+                        <div id="xiulilu-timeline" style="margin-top:14px;max-height:380px;overflow-y:auto;scrollbar-width:thin;padding-right:4px;"></div>
+                    </div>
+
+                    <!-- 手信追踪 -->
+                    <div class="profile-card-v2" style="grid-column: 1 / -1;">
+                        <div class="card-v2-header" style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                            <span>📮 手信驿站 (现实订单追踪)</span>
+                            <button onclick="openHandsignStation()" style="background:linear-gradient(135deg,var(--jade),#4a8a6a);border:none;color:white;padding:4px 14px;border-radius:12px;cursor:pointer;font-size:12px;">查看全部</button>
+                        </div>
+                        <div id="handsign-preview" style="margin-top:12px;"></div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -511,6 +501,59 @@ onclick="enterScene('senzhidiyu')">
                 </div>
             </div>
         </div>
+
+        <div id="view-yaji" class="view-container" style="background: #120e0a; position: relative; overflow: hidden;">
+
+    <!-- 星尘背景 -->
+    <div style="position:absolute; inset:0; opacity:0.25; background-image:url('https://www.transparenttextures.com/patterns/stardust.png'); animation:rainFall 1.2s linear infinite; z-index:1; pointer-events:none;"></div>
+    <!-- 暗角渐变 -->
+    <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 50% 35%, rgba(232,154,101,0.07) 0%, #080604 75%); z-index:2; pointer-events:none;"></div>
+    <!-- 炭火暖光 -->
+    <div style="position:absolute; bottom:-8%; left:50%; transform:translateX(-50%); width:420px; height:220px; background:radial-gradient(ellipse, rgba(232,154,101,0.22) 0%, transparent 70%); animation:pulse 4s infinite alternate; z-index:3; pointer-events:none;"></div>
+
+    <!-- 顶部操作栏 -->
+    <div style="position:absolute; top:18px; left:18px; right:18px; z-index:20; display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-ghost" onclick="exitYaji()" style="border-color:rgba(232,154,101,0.4); color:#e89a65; font-size:13px; padding:7px 16px;">
+            🚪 辞别夜归
+        </button>
+        <div id="yaji-theme-badge" style="background:rgba(0,0,0,0.55); border:1px solid rgba(232,154,101,0.3); color:#d4a070; padding:6px 18px; border-radius:20px; font-size:12px; letter-spacing:2px; font-family:var(--font-kai);"></div>
+        <button onclick="bookOfflineYaji()" style="background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.35); color:#c9a83c; padding:7px 16px; border-radius:8px; cursor:pointer; font-size:12px; letter-spacing:1px; font-family:var(--font-kai);">
+            📍 预约线下雅集
+        </button>
+    </div>
+
+    <!-- 匠师展示区（上半部分居中） -->
+    <div style="position:absolute; top:12%; left:50%; transform:translateX(-50%); z-index:5; text-align:center; width:100%; pointer-events:none;">
+        <div id="yaji-master-avatar" style="font-size:82px; filter:drop-shadow(0 0 30px rgba(232,154,101,0.55)); margin-bottom:14px; animation:float 5s ease-in-out infinite; line-height:1;">🍵</div>
+        <div id="yaji-master-name" style="color:rgba(212,160,80,0.75); font-size:13px; letter-spacing:3px; margin-bottom:18px; font-family:var(--font-kai);"></div>
+        <!-- 主对话文字 -->
+        <div id="yaji-dialogue" style="color:#e8dcc8; font-family:var(--font-kai); font-size:17px; letter-spacing:2px; max-width:480px; margin:0 auto; line-height:2.3; text-shadow:0 2px 10px rgba(0,0,0,0.95); transition:opacity 1.5s ease; min-height:80px; padding:0 20px;">
+            "夜雨添寒，这第一杯茶，先暖暖身子。"
+        </div>
+    </div>
+
+    <!-- 互动时刻小活动（中部） -->
+    <div id="yaji-mini-tasks" style="position:absolute; top:60%; left:50%; transform:translateX(-50%); z-index:10; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; width:85%;"></div>
+
+    <!-- 底部聊天区 -->
+    <div style="position:absolute; bottom:0; left:0; right:0; z-index:15; padding:12px 6% 18px;">
+        <!-- 聊天气泡记录 -->
+        <div id="yaji-chat-history" style="max-height:115px; overflow-y:auto; margin-bottom:10px; display:flex; flex-direction:column; gap:7px; scrollbar-width:none; -ms-overflow-style:none;"></div>
+        <!-- 输入栏 -->
+        <div style="display:flex; gap:10px; background:rgba(8,6,4,0.78); backdrop-filter:blur(14px); padding:11px 18px; border-radius:30px; border:1px solid rgba(232,154,101,0.22);">
+            <input id="yaji-chat-input" type="text" placeholder="向匠师低声细语…" maxlength="80"
+                style="flex:1; background:transparent; border:none; outline:none; color:#ddd0b8; font-family:var(--font-kai); font-size:15px; letter-spacing:1px;"
+                onkeydown="if(event.key==='Enter') sendYajiMessage()">
+            <button id="yaji-send-btn" onclick="sendYajiMessage()"
+                style="background:rgba(232,154,101,0.22); border:1px solid rgba(232,154,101,0.38); color:#e89a65;
+                       padding:7px 20px; border-radius:20px; cursor:pointer; font-family:var(--font-kai);
+                       font-size:13px; white-space:nowrap; transition:all 0.2s;">
+                传话 📨
+            </button>
+        </div>
+    </div>
+
+</div>
 </main>
 
     <nav id="player-dock" class="dock hidden">
@@ -552,6 +595,12 @@ onclick="enterScene('senzhidiyu')">
         <div class="dock-divider"></div>
         <button class="dock-item action-item" onclick="switchMainView('view-deduction', this); renderDeductionBoard()">
             <span class="dock-icon">🕵️</span><span class="dock-label">异闻沙盘</span>
+        </button>
+
+        <div class="dock-divider"></div>
+        <button id="dock-yaji-btn" class="dock-item action-item hidden" onclick="checkYajiInvite()" style="position:relative;">
+            <span class="dock-icon">🍵</span><span class="dock-label">雅集</span>
+            <span id="yaji-dot" style="position:absolute; top:2px; right:2px; width:10px; height:10px; background:red; border-radius:50%; border:2px solid white; display:none;"></span>
         </button>
 
     </nav>
@@ -603,10 +652,12 @@ onclick="enterScene('senzhidiyu')">
         </div>
 
         <div class="shop-goods-panel" style="flex: 1; display: flex; flex-direction: column; background: #fff;">
-            <div class="shop-tabs">
-                <button class="shop-tab active" onclick="switchShopTab('material', this)">原料</button>
-                <button class="shop-tab" onclick="switchShopTab('prop', this)">奇珍道具</button>
-                <button class="shop-tab" onclick="switchShopTab('collection', this)">绝版图纸</button>
+            <div class="shop-tabs" style="flex-wrap:wrap;">
+                <button class="shop-tab active" onclick="switchShopTab('physical',this)">📦 实体手信</button>
+                <button class="shop-tab" onclick="switchShopTab('offline',this)">📍 线下体验</button>
+                <button class="shop-tab" onclick="switchShopTab('course',this)">🎓 线上课程</button>
+                <button class="shop-tab" onclick="switchShopTab('seasonal',this)">🌿 节气限定</button>
+                <button class="shop-tab" onclick="switchShopTab('material',this)">⚗️ 游戏原料</button>
             </div>
             <div class="shop-content" id="shop-grid" style="padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 15px; align-content: start;">
                 </div>
@@ -634,6 +685,75 @@ onclick="enterScene('senzhidiyu')">
     </div>
     <div class="modal-content" style="padding: 0;">
         <div id="mail-list" class="mail-list"></div>
+    </div>
+</div>
+
+<!-- 手信驿站弹窗（全部订单 + 新建邮寄） -->
+<div id="handsign-modal" class="modal" style="max-width:560px;">
+    <div class="modal-header modal-header-jade">
+        <h3>📮 手信驿站 · 现实寄递</h3>
+        <button class="modal-close" onclick="closeModal('handsign-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding:20px;">
+
+        <!-- 新建寄递表单 -->
+        <div id="handsign-form-section" style="background:#f8faf8;border:1px solid #d0e8d8;border-radius:12px;padding:18px;margin-bottom:20px;">
+            <div style="font-size:14px;font-weight:bold;color:#3a7d5a;margin-bottom:14px;">✍️ 新建手信寄递</div>
+            <div style="display:grid;gap:10px;">
+                <div>
+                    <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">选择匠师 & 手信</label>
+                    <select id="hs-product-select" style="width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;background:white;">
+                        <option value="">-- 请先从商行购买手信 --</option>
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">收件人姓名</label>
+                        <input id="hs-name" type="text" placeholder="请输入真实姓名" style="width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">联系电话</label>
+                        <input id="hs-phone" type="tel" placeholder="11位手机号" style="width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">收件地址</label>
+                    <input id="hs-address" type="text" placeholder="省/市/区 + 详细街道地址" style="width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">附言（可选）</label>
+                    <textarea id="hs-note" placeholder="写一句想对匠师说的话，或赠与之人的祝福…" rows="2" style="width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box;resize:none;"></textarea>
+                </div>
+                <button onclick="submitHandsignOrder()" style="background:linear-gradient(135deg,var(--jade),#4a8a6a);border:none;color:white;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;font-family:var(--font-kai);letter-spacing:2px;width:100%;">
+                    📨 确认寄出，等待匠师发货
+                </button>
+            </div>
+        </div>
+
+        <!-- 历史订单列表 -->
+        <div style="font-size:13px;font-weight:bold;color:#555;margin-bottom:10px;">📋 历史寄递记录</div>
+        <div id="handsign-orders-list" style="display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- 节气公告弹窗 -->
+<div id="solar-term-modal" class="modal" style="max-width:480px;">
+    <div class="modal-header" id="solar-term-modal-header" style="background:linear-gradient(135deg,#52b788,#2d6a4f);">
+        <h3 id="solar-term-modal-title">🌿 节气来临</h3>
+        <button class="modal-close" onclick="closeModal('solar-term-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding:24px;">
+        <div id="solar-term-modal-body"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;">
+            <button onclick="closeModal('solar-term-modal');if(typeof openShop==='function')openShop();"
+                style="background:linear-gradient(135deg,var(--jade),#4a8a6a);border:none;color:white;padding:12px;border-radius:8px;cursor:pointer;font-family:var(--font-kai);font-size:13px;">
+                🛒 前往节气商行
+            </button>
+            <button onclick="closeModal('solar-term-modal')"
+                style="background:transparent;border:1px solid #ccc;color:#888;padding:12px;border-radius:8px;cursor:pointer;font-size:13px;">
+                稍后再看
+            </button>
+        </div>
     </div>
 </div>
 
@@ -863,6 +983,90 @@ onclick="enterScene('senzhidiyu')">
 <script src="scripts/exploration-engine.js?t=9999"></script>
 <script src="scripts/scene.js?t=9999"></script>
 <script src="scripts/quest-engine.js?t=9999"></script> 
+
+<!-- =====================================================
+     雅集模态框组 (B端：发请帖 / C端：查看邀约列表)
+     ===================================================== -->
+<div id="modal-host-yaji" class="modal" style="width: 450px;">
+    <div class="modal-header modal-header-ink">
+        <h3>🎪 举办雅集 · 私域相聚</h3>
+        <button class="modal-close" onclick="closeModal('modal-host-yaji')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 30px;">
+        <p style="font-size:13px; color:#666; margin-bottom:20px;">向已解锁您图鉴的门生发送私密请帖，邀请他们来内室小叙。</p>
+        <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:8px;">选择雅集主题：</label>
+        <select id="yaji-theme" class="input-field" style="margin-bottom:25px;">
+            <optgroup label="文人四艺">
+                <option value="围炉夜话·煮茶局">🍵 围炉夜话 · 煮茶局</option>
+                <option value="听雨抚琴·知音局">🎵 听雨抚琴 · 知音局</option>
+                <option value="曲水流觞·泼墨局">✍️ 曲水流觞 · 泼墨局</option>
+                <option value="焚香静坐·品香局">🪔 焚香静坐 · 品香局</option>
+                <option value="对弈论道·手谈局">♟️ 对弈论道 · 手谈局</option>
+            </optgroup>
+            <optgroup label="百工造物">
+                <option value="静心观火·开窑局">🔥 静心观火 · 开窑局</option>
+                <option value="穿针引线·苏绣局">🪡 穿针引线 · 苏绣局</option>
+                <option value="闻香识木·雕刻局">🪵 闻香识木 · 雕刻局</option>
+                <option value="排字印书·活字局">📜 排字印书 · 活字局</option>
+                <option value="锻金铸纹·錾刻局">⚒️ 锻金铸纹 · 錾刻局</option>
+                <option value="揉泥制胎·陶艺局">🏺 揉泥制胎 · 陶艺局</option>
+            </optgroup>
+            <optgroup label="市井民俗">
+                <option value="挑灯夜半·皮影局">🎭 挑灯夜半 · 皮影局</option>
+                <option value="红纸翻飞·剪纸局">✂️ 红纸翻飞 · 剪纸局</option>
+                <option value="百鸟朝凤·唢呐局">📯 百鸟朝凤 · 唢呐局</option>
+                <option value="灯影流转·花灯局">🏮 灯影流转 · 花灯局</option>
+                <option value="彩线缠丝·结绳局">🧵 彩线缠丝 · 结绳局</option>
+                <option value="挥毫题字·春联局">🧧 挥毫题字 · 春联局</option>
+            </optgroup>
+            <optgroup label="非遗雅韵">
+                <option value="丝竹和鸣·民乐局">🎶 丝竹和鸣 · 民乐局</option>
+                <option value="粉墨登场·戏曲局">🎭 粉墨登场 · 戏曲局</option>
+                <option value="古法制茶·焙茶局">🍃 古法制茶 · 焙茶局</option>
+                <option value="笔墨纸砚·文房局">📜 笔墨纸砚 · 文房局</option>
+            </optgroup>
+            <optgroup label="私域社交·轻聚会">
+                <option value="同好相逢·分享局">🤝 同好相逢 · 分享局</option>
+                <option value="手作共创·体验局">🎨 手作共创 · 体验局</option>
+                <option value="非遗研学·交流局">📚 非遗研学 · 交流局</option>
+                <option value="线上云聚·云雅集">☁️ 线上云聚 · 云雅集</option>
+            </optgroup>
+        </select>
+        <button class="btn btn-gold btn-full" style="padding:14px; font-size:16px;" onclick="submitHostYaji()">🕊️ 盖印发帖</button>
+    </div>
+</div>
+
+<div id="modal-yaji-list" class="modal" style="width: 400px; background: #fdf5e6;">
+    <div class="modal-header" style="background: #8e44ad; color: white;">
+        <h3>✉️ 雅集邀约详情</h3>
+        <button class="modal-close" onclick="closeModal('modal-yaji-list')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 20px;">
+        <div id="yaji-list-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
+    </div>
+</div>
+
+<!-- =====================================================
+     九州残卷模态框组
+     ===================================================== -->
+<div id="fragment-gallery-modal" class="modal" style="width: 800px; background: #1a1816; border: 1px solid var(--gold);">
+    <div class="modal-header" style="background: transparent; border-bottom: 1px dashed rgba(212,175,55,0.3);">
+        <h3 style="color: var(--gold); letter-spacing: 2px;">🧩 九州残卷图鉴</h3>
+        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-gallery-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 20px;">
+        <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">收集流落九州的特定灵物，唤醒残卷，解锁关于非遗的特殊隐藏信息与大世界奇遇线索。</p>
+        <div id="fragment-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;"></div>
+    </div>
+</div>
+
+<div id="fragment-detail-modal" class="modal" style="width: 600px; background: #2c2a28; color: #e8dcc8; border: 1px solid var(--gold);">
+    <div class="modal-header" style="background: transparent; border-bottom: 1px solid #444;">
+        <h3 id="fragment-detail-title" style="color: var(--gold);">残卷详情</h3>
+        <button class="modal-close" style="color: #888;" onclick="closeModal('fragment-detail-modal')">×</button>
+    </div>
+    <div class="modal-content" style="padding: 25px;" id="fragment-detail-content"></div>
+</div>
 
 </body>
 </html>

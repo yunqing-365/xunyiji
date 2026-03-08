@@ -8,6 +8,24 @@
 // 一、天工阁基础渲染 (C端玩家看的部分)
 // ============================================================
 let _currentWorkshopCategory = 'all';
+// 在文件顶部定义
+let activeYajiInvites = [];
+let yajiChatInterval;
+
+// 雅集上下文：记录当前这场雅集的完整状态
+const _yajiContext = {
+    masterName: '',
+    masterAvatar: '🍵',
+    theme: '',
+    npcRole: '',
+    personality: '',
+    buffName: '静心',
+    dialogs: [],
+    tasksCompleted: [],
+    chatCount: 0,
+    startTime: null
+};
+
 
 function filterWorkshop(category) {
     _currentWorkshopCategory = category;
@@ -298,12 +316,23 @@ window.renderInheritorDash = function() {
         </div>
         <div style="font-size:13px; font-weight:bold; margin-bottom:10px; color:var(--ink);">🙏 门徒呈交 (待品鉴开光)</div>
     `;
+
+
     tasksHTML += inheritorState.submittedItems.length > 0 ? inheritorState.submittedItems.map(item => `
         <div class="dash-list-item" style="flex-direction:column; align-items:flex-start; gap:10px; border-left:3px solid var(--gold);">
             <div style="width:100%;"><div style="font-weight:bold; font-size:13px; color:var(--ink);">📦 呈交物：${item.itemName}</div><div style="font-size:12px; color:var(--amber); margin-top:4px;">造物者：${item.playerName} <span style="color:#888;">(${item.taskName})</span></div><div style="font-size:11px; color:#888; margin-top:4px; font-style:italic;">"${item.desc}"</div></div>
             <button class="btn btn-sm btn-gold" style="align-self:flex-end; box-shadow:0 2px 8px rgba(212,175,55,0.3);" onclick="openConsecrate(${item.id}, '${item.playerName}', '${item.itemName}')">✨ 品鉴开光</button>
         </div>
     `).join('') : '<div style="color:#aaa; font-size:12px; text-align:center; padding:10px;">暂无弟子呈交作品</div>';
+        let socialHTML = `
+        <div style="margin-top:15px; padding:15px; background:rgba(232,154,101,0.08); border:1px dashed var(--amber); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div><div style="font-size:14px; font-weight:bold; color:var(--amber);">🎪 门派私域雅集</div><div style="font-size:11px; color:#666; margin-top:4px;">邀请弟子内室叙旧，提供静心增益</div></div>
+            <button class="btn btn-sm btn-outline" style="border-color:var(--amber); color:var(--amber);" onclick="openModal('modal-host-yaji')">发请帖</button>
+        </div>
+    `;
+    
+    // 然后将 socialHTML 拼接到 tasksHTML 后面，或者直接放在 .dash-card 里
+    tasksHTML += socialHTML;
 
     let o2oHTML = inheritorState.o2oListings.map(listing => {
         let c = {'实体':'var(--cinnabar)','线下':'var(--jade)','线上':'#4a90e2','藏品':'var(--purple)'}[listing.type] || '#333';
@@ -622,4 +651,498 @@ window._initInheritorSession = function(username) {
         if(typeof showNotification === 'function') showNotification(`匠师 ${username}，欢迎回到工坊中控台！`, '⛩️');
     }
     renderInheritorDash();
+};
+
+window.submitHostYaji = function() {
+    const theme = document.getElementById('yaji-theme').value;
+    // 模拟当前登录匠人的信息（实际开发中从登录状态取）
+    const masterName = document.getElementById('display-inheritor-name')?.innerText || "陈老板";
+    const masterAvatar = "🧑‍🎤"; 
+
+    // 添加到邀请列表
+    activeYajiInvites.push({
+        id: Date.now(),
+        master: masterName,
+        avatar: masterAvatar,
+        theme: theme,
+        time: "刚刚"
+    });
+
+    closeModal('modal-host-yaji');
+    if (typeof showNotification === 'function') showNotification(`已向所有门生发送【${theme}】请帖`, '🕊️');
+
+    // 更新 C端 Dock 入口显示
+    const dockBtn = document.getElementById('dock-yaji-btn');
+    if (dockBtn) {
+        dockBtn.classList.remove('hidden');
+        const dot = document.getElementById('yaji-dot');
+        if (dot) dot.style.display = 'block';
+    }
+};
+
+// C端：进入治愈系内室（搭载智能主题匹配引擎）
+// C端：查看所有请帖
+window.checkYajiInvite = function() {
+    const container = document.getElementById('yaji-list-container');
+    container.innerHTML = ''; // 清空旧列表
+
+    if (activeYajiInvites.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#999;">暂无待参加的雅集...</p>';
+    } else {
+        activeYajiInvites.forEach(invite => {
+            const card = document.createElement('div');
+            card.className = 'yaji-card';
+            card.style = `
+                background: white; border: 1px solid #e0cda9; padding: 15px; border-radius: 8px;
+                display: flex; align-items: center; justify-content: space-between;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            `;
+            card.innerHTML = `
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:30px;">${invite.avatar}</span>
+                    <div>
+                        <div style="font-weight:bold; color:#333;">${invite.master} 的邀约</div>
+                        <div style="font-size:12px; color:#d43c14;">${invite.theme}</div>
+                    </div>
+                </div>
+                <button class="btn btn-sm" style="background:#8e44ad; color:white; border:none;" 
+                    onclick="acceptInvite('${invite.master}', '${invite.theme}', ${invite.id})">赴约</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+    openModal('modal-yaji-list');
+};
+
+// C端：确定赴某一位匠人的约
+window.acceptInvite = function(masterName, theme, id) {
+    closeModal('modal-yaji-list');
+    
+    // 从列表中移除该请帖（表示已参加）
+    activeYajiInvites = activeYajiInvites.filter(inv => inv.id !== id);
+    if (activeYajiInvites.length === 0) {
+        const dot = document.getElementById('yaji-dot');
+        if (dot) dot.style.display = 'none';
+        const dockBtn = document.getElementById('dock-yaji-btn');
+        if (dockBtn) dockBtn.classList.add('hidden');
+    }
+
+      // masterName 传入 enterYajiRoom，由它统一处理所有上下文
+    enterYajiRoom(theme, masterName);
+};
+
+window.enterYajiRoom = function(theme, masterName) {
+    if (typeof switchMainView === 'function') switchMainView('view-yaji', null);
+    document.getElementById('player-dock')?.classList.add('hidden');
+    document.getElementById('main-header')?.classList.add('hidden');
+
+    // ── 初始化上下文 ──
+    _yajiContext.theme      = theme;
+    _yajiContext.masterName = masterName || '匠师';
+    _yajiContext.tasksCompleted = [];
+    _yajiContext.chatCount  = 0;
+    _yajiContext.startTime  = Date.now();
+
+    // 清空聊天记录 & 输入框
+    const chatHistory = document.getElementById('yaji-chat-history');
+    if (chatHistory) chatHistory.innerHTML = '';
+    const chatInput = document.getElementById('yaji-chat-input');
+    if (chatInput) chatInput.value = '';
+
+    // 设置主题标牌
+    const badge = document.getElementById('yaji-theme-badge');
+    if (badge) badge.innerText = theme;
+
+    // ── 主题智能匹配：头像 / 角色 / 性格 / 台词 / 增益 ──
+    let buffName = '静心', npcRole = '国家级非遗传承人', personality = '沉静内敛，言简意赅';
+    let dialogs = [];
+
+    if (theme.includes('琴')) {
+        _yajiContext.masterAvatar = '🎸'; buffName = '知音';
+        npcRole = '古琴演奏家'; personality = '清冷淡然，有深厚音乐素养，喜用曲子表达情感';
+        dialogs = ["（炉火微红，琴弦发出低沉的嗡鸣…）", "听窗外雨声滴答，且把浮名换了浅斟低唱。", "这首曲子，我平日不轻易弹，今日只为你奏。"];
+    } else if (theme.includes('火') || theme.includes('窑')) {
+        _yajiContext.masterAvatar = '🔥'; buffName = '御火';
+        npcRole = '柴烧陶艺传承人'; personality = '沉稳老练，对火候有独到理解，话语简练却有力';
+        dialogs = ["泥土与火焰的交融，非人力所能全控，唯有敬畏。", "这窑火，我守了三十年。今天陪我一起看这泥蜕变为玉。", "不急，再等一炷香。好东西都是熬出来的。"];
+    } else if (theme.includes('绣') || theme.includes('针')) {
+        _yajiContext.masterAvatar = '🪡'; buffName = '巧手';
+        npcRole = '苏绣国家级传承人'; personality = '温柔细腻，心思细密，慢声细语，喜引导对方去观察细节';
+        dialogs = ["（丝线在烛光下泛着微光…）", "这一针下去，可是藏着江南的满园春色。", "心不静，线必乱。喝口茶，看着我走这平针。"];
+    } else if (theme.includes('木') || theme.includes('雕')) {
+        _yajiContext.masterAvatar = '🪵'; buffName = '匠心';
+        npcRole = '木雕非遗传承人'; personality = '质朴直率，对自然材料有深厚感情，说话接地气';
+        dialogs = ["（刨花的清香混着炭火味，让人心神安宁…）", "顺着木头的纹理下刀，它就不会喊疼。", "这块沉香木，等了百年，终于等到了懂它的人。"];
+    } else if (theme.includes('墨') || theme.includes('字') || theme.includes('书')) {
+        _yajiContext.masterAvatar = '✍️'; buffName = '墨韵';
+        npcRole = '书法非遗传承人'; personality = '儒雅从容，学识渊博，善用典故，喜欢引导对方思考';
+        dialogs = ["（研墨的沙沙声在静夜里格外清晰…）", "提笔如悬胆，落笔如泰山。你看这一横的力道。", "字如其人，今日你的气息很稳，适合写狂草。"];
+    } else if (theme.includes('影') || theme.includes('戏')) {
+        _yajiContext.masterAvatar = '🎭'; buffName = '入戏';
+        npcRole = '皮影戏非遗传承人'; personality = '幽默风趣，讲故事极有感染力，喜欢卖关子';
+        dialogs = ["（昏黄的幕布后，几个驴皮小人正在待命…）", "光影之间，演尽了千古悲欢。", "来，你拿这根签子，让他走两步试试。"];
+    } else if (theme.includes('纸') || theme.includes('剪')) {
+        _yajiContext.masterAvatar = '✂️'; buffName = '化裁';
+        npcRole = '剪纸非遗传承人'; personality = '心灵手巧，热情开朗，喜欢分享，把技艺当礼物送出去';
+        dialogs = ["（红纸翻飞，碎屑如落花般掉在火炉边…）", "这叫阴阳互补，剪掉的是阴，留下的是阳。", "奶奶教我的剪法，今天传给你了。"];
+    } else if (theme.includes('茶')) {
+        _yajiContext.masterAvatar = '🍵'; buffName = '静心';
+        npcRole = '制茶非遗传承人'; personality = '平和淡然，深谙茶道哲学，说话如茶，回味悠长';
+        dialogs = ["夜雨添寒，这第一杯茶，敬的是九州的天地。", "（炭火毕剥作响，茶香氤氲在内室之中…）", "且把大千世界的烦恼放在门外，喝茶。"];
+    } else if (theme.includes('香')) {
+        _yajiContext.masterAvatar = '🪔'; buffName = '禅定';
+        npcRole = '传统香道传承人'; personality = '静谧沉稳，每句话都很轻，像烟一样缓缓散开';
+        dialogs = ["（一缕香烟袅袅升起，室内一片静谧…）", "香能静心，这一味，是我走遍山野才寻来的。", "闭上眼，用鼻子去游历，比用脚走更远。"];
+    } else {
+        _yajiContext.masterAvatar = '🏮'; buffName = '静心';
+        npcRole = '国家级非遗传承人'; personality = '温和儒雅，见多识广，喜欢讲故事';
+        dialogs = ["夜雨添寒，这第一杯茶，先暖暖身子。", "（炭火毕剥作响，屋内一片安宁…）", "有缘相聚，今晚随意，但说无妨。"];
+    }
+
+    _yajiContext.buffName   = buffName;
+    _yajiContext.npcRole    = npcRole;
+    _yajiContext.personality = personality;
+    _yajiContext.dialogs    = dialogs;
+
+    if (typeof gameState !== 'undefined') gameState.currentYajiBuff = buffName;
+
+    // ── 更新 DOM ──
+    const avatarEl = document.getElementById('yaji-master-avatar');
+    const nameEl   = document.getElementById('yaji-master-name');
+    if (avatarEl) avatarEl.innerText = _yajiContext.masterAvatar;
+    if (nameEl)   nameEl.innerText   = `${_yajiContext.masterName} · ${npcRole}`;
+
+    const textEl = document.getElementById('yaji-dialogue');
+    if (textEl) textEl.innerText = dialogs[0];
+
+    // ── 慢节奏自动轮播（玩家主动发言后暂停）──
+    let autoIdx = 1;
+    clearInterval(yajiChatInterval);
+    yajiChatInterval = setInterval(() => {
+        if (_yajiContext.chatCount > 0) return; // 进入对话模式后停止自动播放
+        if (!textEl) return;
+        textEl.style.opacity = '0';
+        setTimeout(() => {
+            textEl.innerText = dialogs[autoIdx % dialogs.length];
+            textEl.style.opacity = '1';
+            autoIdx++;
+        }, 1500);
+    }, 8000);
+
+    // ── 渲染互动小活动 ──
+    _renderYajiMiniTasks(theme);
+};
+
+// ── 打字机效果显示对话 ──
+function _typewriterDialogue(text) {
+    const el = document.getElementById('yaji-dialogue');
+    if (!el) return;
+    el.style.opacity = '0';
+    setTimeout(() => {
+        el.innerText = '';
+        el.style.opacity = '1';
+        let i = 0;
+        const iv = setInterval(() => {
+            if (i < text.length) { el.innerText += text[i]; i++; }
+            else clearInterval(iv);
+        }, 55);
+    }, 700);
+}
+
+// ── 添加一条聊天气泡到记录 ──
+function _appendYajiChat(role, text) {
+    const history = document.getElementById('yaji-chat-history');
+    if (!history) return;
+    const isPlayer = (role === 'player');
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex; justify-content:${isPlayer ? 'flex-end' : 'flex-start'};`;
+    div.innerHTML = `
+        <div style="max-width:72%; background:${isPlayer ? 'rgba(212,175,55,0.12)' : 'rgba(232,154,101,0.1)'};
+             border:1px solid ${isPlayer ? 'rgba(212,175,55,0.3)' : 'rgba(232,154,101,0.2)'};
+             padding:8px 14px; border-radius:${isPlayer ? '14px 14px 3px 14px' : '14px 14px 14px 3px'};
+             font-size:13px; color:${isPlayer ? '#d4c070' : '#e8dcc8'};
+             font-family:var(--font-kai); line-height:1.7; letter-spacing:0.5px;">
+            ${text}
+        </div>`;
+    history.appendChild(div);
+    history.scrollTop = history.scrollHeight;
+}
+
+// ── C端：向匠师发送消息（接入 AI 后端）──
+window.sendYajiMessage = async function() {
+    const input   = document.getElementById('yaji-chat-input');
+    const sendBtn = document.getElementById('yaji-send-btn');
+    if (!input) return;
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    _yajiContext.chatCount++;
+    clearInterval(yajiChatInterval); // 进入主动对话模式，停止自动轮播
+
+    _appendYajiChat('player', message);
+
+    const dialogueEl = document.getElementById('yaji-dialogue');
+    if (dialogueEl) { dialogueEl.style.opacity = '0.4'; dialogueEl.innerText = '（匠师沉吟片刻…）'; dialogueEl.style.opacity = '0.6'; }
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.innerText = '…'; }
+
+    try {
+        const res = await fetch('http://localhost:3000/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                npcName:      _yajiContext.masterName,
+                npcRole:      _yajiContext.npcRole,
+                npcType:      'inheritor',
+                personality:  _yajiContext.personality,
+                knowledgeBase: {
+                    craft:   `与【${_yajiContext.theme}】相关的传统非遗技艺精髓`,
+                    history: '数百年传承，国家级非遗项目'
+                },
+                userMessage: message,
+                intimacy: 70  // 雅集场景，关系已亲密
+            })
+        });
+        const data  = await res.json();
+        const reply = data.reply || '（匠师微微颔首，静默良久）';
+        _typewriterDialogue(reply);
+        _appendYajiChat('master', reply);
+    } catch (err) {
+        // 服务器离线时的温柔降级回复
+        const fallbacks = [
+            `（${_yajiContext.masterAvatar} 轻轻点头）技艺之道，在于用心。你问的这件事，我年轻时也思量过许久。`,
+            `（拨了拨炉火）好问题。这门手艺的精髓，不只在手上，在这里。`,
+            `（放下手中的活计，抬头认真看着你）你有这份心，已经难得了。慢慢来。`
+        ];
+        const reply = fallbacks[_yajiContext.chatCount % fallbacks.length];
+        _typewriterDialogue(reply);
+        _appendYajiChat('master', reply);
+    } finally {
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.innerText = '传话 📨'; }
+    }
+};
+
+// ── 渲染三个互动时刻小活动 ──
+function _renderYajiMiniTasks(theme) {
+    const container = document.getElementById('yaji-mini-tasks');
+    if (!container) return;
+
+    // 根据主题选择对应的体验活动
+    const taskMap = {
+        '茶': [{ id: 'brew', icon: '🫖', name: '亲手沏茶', reward: '🍵 茶香碎片 ×1' }, { id: 'listen', icon: '👂', name: '静心聆听', reward: '☁️ 禅定值 +5' }, { id: 'ask', icon: '💬', name: '请教制茶', reward: '📜 制茶秘录' }],
+        '琴': [{ id: 'tune', icon: '🎵', name: '试拨琴弦', reward: '🎶 知音碎片 ×1' }, { id: 'close', icon: '👁️', name: '闭目聆曲', reward: '☁️ 宁静感悟' }, { id: 'ask', icon: '💬', name: '请教曲谱', reward: '📜 乐谱残卷' }],
+        '窑': [{ id: 'watch', icon: '👀', name: '观火候', reward: '🔥 御火心得' }, { id: 'clay', icon: '🏺', name: '揉一团泥', reward: '🏺 素胎泥坯' }, { id: 'ask', icon: '💬', name: '问开窑时机', reward: '📜 窑火秘传' }],
+        '绣': [{ id: 'thread', icon: '🪡', name: '穿针引线', reward: '🪡 丝线 ×3' }, { id: 'watch', icon: '👀', name: '观摩针法', reward: '☁️ 巧手感悟' }, { id: 'ask', icon: '💬', name: '请教绣样', reward: '📜 苏绣图样' }],
+    };
+    let tasks = null;
+    for (const [key, val] of Object.entries(taskMap)) { if (theme.includes(key)) { tasks = val; break; } }
+    if (!tasks) tasks = [
+        { id: 'tea',    icon: '🫖', name: '添茶',   reward: '🍵 茶香 ×1' },
+        { id: 'admire', icon: '👀', name: '观摩',   reward: '☁️ 感悟 +5' },
+        { id: 'chat',   icon: '💬', name: '请益',   reward: '📜 启发碎片' }
+    ];
+
+    container.innerHTML = tasks.map(task => {
+        const done = _yajiContext.tasksCompleted.includes(task.id);
+        return `
+        <button onclick="completeYajiTask('${task.id}','${task.name}','${task.reward}')"
+            style="background:${done ? 'rgba(126,182,161,0.25)' : 'rgba(0,0,0,0.45)'};
+                   border:1px solid ${done ? 'rgba(126,182,161,0.5)' : 'rgba(232,154,101,0.3)'};
+                   color:${done ? '#7eb6a1' : '#c8b896'};
+                   padding:9px 16px; border-radius:20px; cursor:${done ? 'default' : 'pointer'};
+                   font-family:var(--font-kai); font-size:13px; letter-spacing:1px;
+                   transition:all 0.3s; display:flex; align-items:center; gap:6px;
+                   pointer-events:${done ? 'none' : 'auto'};">
+            <span>${done ? '✅' : task.icon}</span>
+            <span>${task.name}</span>
+        </button>`;
+    }).join('');
+}
+
+// ── 完成一个互动时刻 ──
+window.completeYajiTask = function(taskId, taskName, reward) {
+    if (_yajiContext.tasksCompleted.includes(taskId)) return;
+    _yajiContext.tasksCompleted.push(taskId);
+
+    if (typeof showNotification === 'function') showNotification(`完成了【${taskName}】，获得 ${reward}`, '✨');
+    if (typeof playSound === 'function') playSound('magic');
+
+    // 匠师即兴反应
+    const reactions = {
+        brew:   '（接过茶盏，点头微笑）有心了，这杯茶，正好润润喉。',
+        tea:    '（接过茶盏，点头微笑）有心了，这杯茶，正好润润喉。',
+        listen: '（察觉到你的安静）你听进去了。这比任何问题都难得。',
+        close:  '（轻轻颔首）好。先用耳朵感受，再用心去问。',
+        admire: '（察觉到你的目光）看到了什么？说说你的感受。',
+        watch:  '（回头对你一笑）看懂了几分？',
+        ask:    '（放下手中的活计，坐正了）好问题，来，坐近些听。',
+        chat:   '（放下手中的活计，坐正了）好问题，来，坐近些听。',
+        thread: '（递过针线）来，试试这一针，心要静。',
+        clay:   '（把泥递过来）感受一下，它在呼吸。',
+        tune:   '（把琴推了推）来，就这根弦，轻轻拨一下。',
+    };
+    const reaction = reactions[taskId] || '（匠师向你投来赞许的眼神，微微点头）';
+    _typewriterDialogue(reaction);
+    _appendYajiChat('master', reaction);
+    _renderYajiMiniTasks(_yajiContext.theme);
+
+    // 三个全完成 → 额外惊喜
+    if (_yajiContext.tasksCompleted.length >= 3) {
+        setTimeout(() => {
+            if (typeof showNotification === 'function') showNotification('完成了今晚所有互动时刻！获得额外奖励【匠心印记】', '🌟', 5000);
+            if (typeof addItem === 'function') addItem('匠心印记', 1);
+        }, 1800);
+    }
+};
+
+// ── C端：退出雅集，生成记忆卷轴 + 引导预约线下 ──
+window.exitYaji = function() {
+    clearInterval(yajiChatInterval);
+    document.getElementById('player-dock')?.classList.remove('hidden');
+    document.getElementById('main-header')?.classList.remove('hidden');
+
+    const buffName   = _yajiContext.buffName || '静心';
+    const tasksCount = _yajiContext.tasksCompleted.length;
+    const chatCount  = _yajiContext.chatCount;
+    const duration   = Math.max(1, Math.floor((Date.now() - (_yajiContext.startTime || Date.now())) / 60000));
+
+    // 生成并入库「记忆卷轴」道具
+    const memoryItemName = `${_yajiContext.masterName}·雅集记忆`;
+    if (typeof itemDatabase !== 'undefined') {
+        itemDatabase[memoryItemName] = {
+            icon: '📜', type: 'rare', rarity: 4,
+            desc: `在【${_yajiContext.theme}】中，与 ${_yajiContext.masterName} 共度的一段温柔时光。`,
+            echo: `"有些相遇，不在声势，而在意境。"`,
+            usable: false
+        };
+    }
+    if (typeof addItem === 'function') addItem(memoryItemName, 1);
+    if (typeof playSound === 'function') playSound('achievement');
+
+    // 写入传习录
+    if (typeof _appendXiulilu === 'function') {
+        _appendXiulilu({
+            type:  'yaji',
+            icon:  _yajiContext.masterAvatar,
+            color: '#e89a65',
+            title: `与【${_yajiContext.masterName}】的雅集·${_yajiContext.theme}`,
+            desc:  `共赴 ${duration} 分钟，${tasksCount}/3 互动时刻，${chatCount} 次低语，获得【${buffName}】增益`
+        });
+    }
+    // 知音羁绊
+    if (typeof addIntimacy === 'function') {
+        const intimacyGain = 5 + tasksCount * 5 + Math.min(chatCount * 2, 20);
+        addIntimacy(_yajiContext.masterName, intimacyGain, `在【${_yajiContext.theme}】雅集中共度时光`);
+    }
+
+    // 显示结算弹窗
+    if (typeof _showGenericModal === 'function') {
+        _showGenericModal('🍃 雅集已散，情意留存', `
+            <div style="text-align:center; padding:5px 0 15px;">
+                <div style="font-size:52px; margin-bottom:10px; animation:float 3s ease-in-out infinite;">${_yajiContext.masterAvatar}</div>
+                <div style="font-size:15px; color:var(--ink); font-family:var(--font-kai); line-height:1.9; margin-bottom:20px;">
+                    你推开门，深吸了一口外面的清冷空气。<br>
+                    <span style="color:#888; font-size:13px;">屋内的余温，仿佛还萦绕在指尖。</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;">
+                    <div style="background:#f8f4ec; padding:12px 8px; border-radius:8px;">
+                        <div style="font-size:18px;">💬</div>
+                        <div style="font-size:22px; font-weight:bold; color:var(--ink); margin:4px 0;">${chatCount}</div>
+                        <div style="font-size:11px; color:#888;">次低语</div>
+                    </div>
+                    <div style="background:#f8f4ec; padding:12px 8px; border-radius:8px;">
+                        <div style="font-size:18px;">✅</div>
+                        <div style="font-size:22px; font-weight:bold; color:var(--ink); margin:4px 0;">${tasksCount}/3</div>
+                        <div style="font-size:11px; color:#888;">互动时刻</div>
+                    </div>
+                    <div style="background:#f8f4ec; padding:12px 8px; border-radius:8px;">
+                        <div style="font-size:18px;">⏳</div>
+                        <div style="font-size:22px; font-weight:bold; color:var(--ink); margin:4px 0;">${duration}</div>
+                        <div style="font-size:11px; color:#888;">分钟相陪</div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(126,182,161,0.08); border-left:3px solid var(--jade); padding:14px; text-align:left; border-radius:0 8px 8px 0; margin-bottom:14px;">
+                    <div style="font-size:13px; color:var(--jade); font-weight:bold; margin-bottom:5px;">✨ 获得【${buffName}】增益</div>
+                    <div style="font-size:12px; color:#666; line-height:1.6;">接下来 3 个时辰内，大世界探索体力消耗减半，对应技艺造物大成功率提升 25%。</div>
+                </div>
+
+                <div style="background:rgba(212,175,55,0.06); border:1px dashed var(--gold); padding:12px; border-radius:8px; margin-bottom:18px; text-align:left;">
+                    <div style="font-size:13px; color:var(--gold); font-weight:bold; margin-bottom:4px;">📜 获得【${memoryItemName}】</div>
+                    <div style="font-size:12px; color:#888;">这段温柔的时光，已化作记忆卷轴，收入你的行囊。</div>
+                </div>
+
+                <button onclick="if(typeof _genericModalClose==='function')_genericModalClose(); bookOfflineYaji();"
+                    style="width:100%; background:linear-gradient(135deg, #e89a65, #c8442a); border:none; color:white;
+                           padding:13px; border-radius:8px; font-size:15px; cursor:pointer;
+                           font-family:var(--font-kai); letter-spacing:2px; margin-bottom:8px;">
+                    📍 将这段相遇延续到线下 →
+                </button>
+                <button onclick="if(typeof switchMainView==='function')switchMainView('view-map',document.querySelector('.dock-item'));if(typeof _genericModalClose==='function')_genericModalClose();"
+                    style="width:100%; background:transparent; border:1px solid #ccc; color:#888;
+                           padding:10px; border-radius:8px; font-size:13px; cursor:pointer; font-family:var(--font-kai);">
+                    暂不，独自归去
+                </button>
+            </div>
+        `);
+    } else {
+        if (typeof switchMainView === 'function') switchMainView('view-map', document.querySelector('.dock-item.active'));
+        if (typeof showNotification === 'function') showNotification(`获得【${buffName}】增益！记忆卷轴已存入行囊。`, '🍃', 5000);
+    }
+};
+
+// ── O2O 线下预约入口 ──
+window.bookOfflineYaji = function() {
+    if (typeof _showGenericModal !== 'function') {
+        if (typeof showNotification === 'function') showNotification('线下预约功能即将上线！', '📍');
+        return;
+    }
+    _showGenericModal('📍 预约线下雅集', `
+        <div style="padding:5px 0;">
+            <div style="background:linear-gradient(135deg,#fdfaf4,#f8f0e0); border:1px solid var(--gold); border-radius:12px; padding:20px; margin-bottom:18px; text-align:center;">
+                <div style="font-size:42px; margin-bottom:8px;">${_yajiContext.masterAvatar}</div>
+                <div style="font-size:16px; font-weight:bold; color:var(--ink); margin-bottom:3px;">${_yajiContext.masterName}</div>
+                <div style="font-size:12px; color:#888; margin-bottom:12px;">${_yajiContext.npcRole}</div>
+                <div style="background:rgba(232,154,101,0.1); border-left:3px solid #e89a65; padding:10px; text-align:left; border-radius:4px;">
+                    <div style="font-size:13px; color:#e89a65; font-weight:bold;">【${_yajiContext.theme}】线下私家体验</div>
+                    <div style="font-size:12px; color:#888; margin-top:3px;">在匠师工坊，亲历这门非遗技艺，限 1–6 人小班制</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
+                <div style="background:#f8f8f8; padding:13px; border-radius:8px;">
+                    <div style="font-size:11px; color:#888; margin-bottom:3px;">📅 可约日期</div>
+                    <div style="font-size:13px; font-weight:bold; color:var(--ink);">本周末 · 次周末</div>
+                </div>
+                <div style="background:#f8f8f8; padding:13px; border-radius:8px;">
+                    <div style="font-size:11px; color:#888; margin-bottom:3px;">💰 体验价格</div>
+                    <div style="font-size:13px; font-weight:bold; color:var(--cinnabar);">380 灵石起</div>
+                </div>
+                <div style="background:#f8f8f8; padding:13px; border-radius:8px;">
+                    <div style="font-size:11px; color:#888; margin-bottom:3px;">👥 人数限制</div>
+                    <div style="font-size:13px; font-weight:bold; color:var(--ink);">最多 6 人</div>
+                </div>
+                <div style="background:#f8f8f8; padding:13px; border-radius:8px;">
+                    <div style="font-size:11px; color:#888; margin-bottom:3px;">⏱️ 体验时长</div>
+                    <div style="font-size:13px; font-weight:bold; color:var(--ink);">约 3 小时</div>
+                </div>
+            </div>
+
+            <div style="background:rgba(126,182,161,0.08); border:1px dashed var(--jade); padding:14px; border-radius:8px; margin-bottom:18px;">
+                <div style="font-size:13px; color:var(--jade); font-weight:bold; margin-bottom:7px;">🎁 线上雅集专属福利</div>
+                <div style="font-size:12px; color:#555; line-height:1.9;">
+                    ✓ 凭【记忆卷轴】享 9 折优惠<br>
+                    ✓ 匠师亲制手信一份（价值 200 元）<br>
+                    ✓ 独家限定道具【${_yajiContext.masterName}·私印】
+                </div>
+            </div>
+
+            <button onclick="if(typeof showNotification==='function')showNotification('预约申请已发出！匠师将在24小时内回复您，请注意邮件通知。','📍',5000); if(typeof _genericModalClose==='function')_genericModalClose();"
+                style="width:100%; background:linear-gradient(135deg,var(--jade),#4a8a6a); border:none; color:white;
+                       padding:14px; border-radius:8px; font-size:15px; cursor:pointer; font-family:var(--font-kai); letter-spacing:2px;">
+                ✅ 确认预约，静待匠师回音
+            </button>
+        </div>
+    `);
 };
