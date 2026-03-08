@@ -1,28 +1,10 @@
 {
   "name": "xunyiji",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yunqing-365/xunyiji.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/yunqing-365/xunyiji/issues"
-  },
-  "homepage": "https://github.com/yunqing-365/xunyiji#readme",
-  "dependencies": {
-    "axios": "^1.13.6",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "ethers": "^6.11.1",
+    "hardhat": "^2.22.2"
   }
 }
