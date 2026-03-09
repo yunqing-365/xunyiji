@@ -1309,25 +1309,47 @@ const CraftEngine = (function() {
   }
 
   /* 发放物品、记录传习录、保存 */
+  /* 发放物品、记录传习录、保存、并联动图鉴与成就 */
   function _deliverResult(finalName, finalIcon, quality) {
+    // 1. 发放物品
     if (typeof addItem === 'function') addItem(finalName, 1);
     else gameState.inventory[finalName] = (gameState.inventory[finalName] || 0) + 1;
 
-    // 图鉴
+    // 2. 兼容万物鉴的发现记录 (核心修复)
+    if (!gameState.discoveredItems) gameState.discoveredItems = [];
+    if (!gameState.discoveredItems.includes(finalName)) {
+        gameState.discoveredItems.push(finalName);
+    }
+
+    // 3. 图鉴百科与奖励
     if (_recipe.compendium && !gameState.unlockedCompendium.includes(finalName)) {
       gameState.unlockedCompendium.push(finalName);
       if (typeof earnStones === 'function') earnStones(_recipe.compendium.reward || 0);
+      
+      // 动态将新配方物品注入全局物品库
       if (typeof itemDatabase !== 'undefined' && !itemDatabase[finalName]) {
         itemDatabase[finalName] = { icon: finalIcon, desc: _recipe.compendium.history, type: 'crafted', rarity: quality };
       }
+
+      // 延迟弹出图鉴扩充通知，防止与造物成功的通知重叠
+      if (typeof showNotification === 'function') {
+          setTimeout(() => {
+              showNotification(`【图鉴扩充】《万物鉴》收录新造物【${finalName}】，奖励 ${_recipe.compendium.reward} 灵石！`, '📖', 6000);
+          }, 2000); 
+      }
     }
 
-    // 传习录
+    // 4. 触发成就：只要完成一次造物，即可解锁“天工开物”成就
+    if (typeof unlockAchievement === 'function') {
+        unlockAchievement('craft_first', '天工开物', '在造物台成功完成一次沉浸式造物', 300, '🔨');
+    }
+
+    // 5. 传习录记录
     if (typeof _appendXiulilu === 'function') {
       _appendXiulilu({
         type: 'craft', icon: finalIcon,
         title: `造物成功：【${finalName}】`,
-        desc: `于${_station.name}完成，品质 ${'★'.repeat(quality)}`
+        desc: `于${_station.name}沉浸完成，品质 ${'★'.repeat(quality)}`
       });
     }
 
