@@ -139,7 +139,6 @@ function updateStats() {
     if (el) el.innerText = gameState.stones;
 }
 
-// 👇👇👇 复制以下这段新增的 addItem 函数 👇👇👇
 /**
  * 核心：向背包添加物品并自动存档、刷新UI
  */
@@ -153,7 +152,6 @@ window.addItem = function(itemName, amount = 1) {
     // 如果背包界面开着，立刻刷新
     if (typeof updateInventory === 'function') updateInventory();
 };
-// 👆👆👆 复制到这里 👆👆👆
 
 /**
  * 根据 gameState.inventory 重新渲染灵犀袋格子
@@ -2392,7 +2390,8 @@ const ITEM_TYPE_MAP = {
     'prop': '道具',
     'rare': '奇珍',
     'contract': '契约',
-    'currency': '货币'
+    'currency': '货币',
+    'token': '信物' // <--- 新增这行
 };
 
 // 1. 初始化开局物资 (修复：即使有旧存档，也会强制补发缺失的新手物资)
@@ -2517,6 +2516,35 @@ window.useItemInBag = function(itemName) {
             showNotification(`你使用了【${itemName}】！`, '✨');
         }
     }
+};
+// 核心功能：沉浸式阅读信件/信物弹窗
+window.readLetter = function(itemName) {
+    const itemData = itemDatabase[itemName];
+    if (!itemData || !itemData.letterContent) return;
+
+    // 动态注入信件 UI 
+    let letterModal = document.getElementById('letter-modal');
+    if (!letterModal) {
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="letter-modal" class="modal">
+                <div class="modal-content" style="background: #fafaf8; background-image: var(--texture-paper); width: 460px; padding: 40px 45px; border-radius: 4px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); position: relative; border: 1px solid #e0d5c1;">
+                    <button class="modal-close" style="color: #aaa; position: absolute; top: 15px; right: 20px; font-size: 28px;" onclick="closeModal('letter-modal')">×</button>
+                    <div style="text-align: center; font-size: 45px; margin-bottom: 20px; opacity: 0.9; animation: float 3s ease-in-out infinite;">✉️</div>
+                    <h3 id="letter-title" style="color: var(--cinnabar); text-align: center; margin-bottom: 30px; font-family: var(--font-kai); font-size: 22px; letter-spacing: 3px;"></h3>
+                    <div id="letter-body" style="font-family: var(--font-kai); font-size: 16px; color: var(--ink); line-height: 2.2; text-indent: 2em; text-align: justify;"></div>
+                    <div id="letter-sender" style="text-align: right; margin-top: 40px; font-family: var(--font-kai); font-weight: bold; color: var(--jade); font-size: 15px;"></div>
+                </div>
+            </div>
+        `);
+    }
+    
+    document.getElementById('letter-title').innerText = itemName;
+    document.getElementById('letter-body').innerHTML = itemData.letterContent;
+    document.getElementById('letter-sender').innerText = itemData.sender || '九州故人';
+    
+    closeModal('item-detail-modal'); // 关闭物品详情弹窗
+    if (typeof playSound === 'function') playSound('magic'); 
+    openModal('letter-modal');       // 打开信件弹窗
 };
 
 // 兜底函数：如果你还没写具体的 useFunc，系统不会报错，而是给提示

@@ -267,11 +267,13 @@ onclick="enterScene('senzhidiyu')">
             <div class="section-title">
                 <div>🎒 灵犀袋 <span class="subtitle" style="margin-left:10px;">收集于九州各地的物品与道具</span></div>
             </div>
+            
             <div class="inventory-filter">
                 <button class="filter-btn active" data-type="all" onclick="filterInventory('all')">全部</button>
                 <button class="filter-btn" data-type="material" onclick="filterInventory('material')">材料</button>
                 <button class="filter-btn" data-type="prop" onclick="filterInventory('prop')">道具</button>
                 <button class="filter-btn" data-type="collection" onclick="filterInventory('collection')">收藏</button>
+                <button class="filter-btn" data-type="token" onclick="filterInventory('token')" style="color: var(--cinnabar); border-color: rgba(212,100,30,0.3);">💌 信物</button>
             </div>
             <div id="inventory-list" class="inventory-grid"></div>
         </div>

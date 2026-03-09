@@ -1936,3 +1936,289 @@ const TITLE_DATA = [
     { id: 'title_crafter',    name: '天工巨匠',   condition: s => s.achievements && s.achievements['craft_first'] },
     { id: 'title_explorer',   name: '九州行者',   condition: s => s.achievements && s.achievements['first_interact'] },
 ];
+
+// =========================================================================
+// 🌟 物品库终极扩展补丁：自动注入天工造物 4.0 的所有材料与产物
+// =========================================================================
+Object.assign(itemDatabase, {
+    // ── 1. 大世界基础材料 ──
+    '清晨露水': { icon: '💧', type: 'material', rarity: 3, desc: '青岚界清晨的纯净露水，极品茶道与陶瓷的催化剂。', usable: false },
+    '赤铁矿粉': { icon: '🔴', type: 'material', rarity: 2, desc: '研磨细致的赤铁矿，可做陶泥底色。', usable: false },
+    '古陶碎片': { icon: '🏺', type: 'material', rarity: 4, desc: '龙窑旧址挖出的千年碎片，附着窑神的气息。', usable: false },
+    '木模茶盏': { icon: '🪵', type: 'material', rarity: 2, desc: '鲁班台做出的模具，辅助拉坯。', usable: false },
+    '古瓷粉':   { icon: '🕰️', type: 'material', rarity: 3, desc: '宋代瓷器研磨的粉末，有古韵。', usable: false },
+    '青釉料':   { icon: '🎨', type: 'material', rarity: 2, desc: '龙泉窑的灵魂釉水。', usable: false },
+    '竹制刻刀': { icon: '🔪', type: 'material', rarity: 2, desc: '极其锋利的竹刀。', usable: false },
+    '金粉':     { icon: '✨', type: 'material', rarity: 4, desc: '纯金研磨，尽显皇家气派。', usable: false },
+    '鲛人泪':   { icon: '💧', type: 'material', rarity: 5, desc: '沧溟海域极品，触之微凉。', echo: '“沧海月明珠有泪...”', usable: false },
+    '珍珠粉':   { icon: '💎', type: 'material', rarity: 3, desc: '能让器物散发温润珠光。', usable: false },
+    '蓝草汁液': { icon: '🔵', type: 'material', rarity: 2, desc: '青岚界特有，草木染极品。', usable: false },
+    '栀子花粉': { icon: '⚪', type: 'material', rarity: 2, desc: '染坊秘方材料，不易泛黄。', usable: false },
+    '鲛绡断匹': { icon: '🌊', type: 'material', rarity: 5, desc: '深海织物，水火不侵。', usable: false },
+    '荧光孢子': { icon: '✨', type: 'material', rarity: 3, desc: '森之低语的特产，夜间发光。', usable: false },
+    '戏服绣线': { icon: '🎭', type: 'material', rarity: 3, desc: '沾染了戏曲名角气息的丝线。', usable: false },
+    '古绣针':   { icon: '🪡', type: 'material', rarity: 4, desc: '明代绣娘传下的神针。', usable: false },
+    '金线':     { icon: '💰', type: 'material', rarity: 4, desc: '纯金拉丝，织造云锦必备。', usable: false },
+    '孔雀羽毛': { icon: '🦚', type: 'material', rarity: 4, desc: '能让云锦闪烁出孔雀开屏般的光泽。', usable: false },
+    '驴皮':     { icon: '🐴', type: 'material', rarity: 2, desc: '透光性绝佳的皮影底料。', usable: false },
+    '草木染料': { icon: '🌿', type: 'material', rarity: 2, desc: '多种植物提炼的染料。', usable: false },
+    '胡杨木':   { icon: '🌵', type: 'material', rarity: 3, desc: '生而千年不死，死而千年不倒。', usable: false },
+    '桐油':     { icon: '🫙', type: 'material', rarity: 2, desc: '上佳的木作防腐涂料。', usable: false },
+    '青铜齿轮': { icon: '⚙️', type: 'material', rarity: 4, desc: '西洋古堡里的发条核心。', usable: false },
+    '流沙琥珀': { icon: '🦂', type: 'material', rarity: 5, desc: '封印着远古沙海灵魂的琥珀。', usable: false },
+    '灵竹':     { icon: '🎋', type: 'material', rarity: 3, desc: '青岚界的特产，轻盈坚韧。', usable: false },
+    '玻璃镜片': { icon: '🔍', type: 'material', rarity: 3, desc: '西洋商船带来的光学镜片。', usable: false },
+    '灵竹篾':   { icon: '🎋', type: 'material', rarity: 2, desc: '劈好的极细竹条。', usable: false },
+    '无根水':   { icon: '💧', type: 'material', rarity: 4, desc: '未落地的雨水，茶道圣品。', usable: false },
+    '灵竹露':   { icon: '💧', type: 'material', rarity: 3, desc: '带着清香的露水。', usable: false },
+    '桂花蜜':   { icon: '🌼', type: 'material', rarity: 2, desc: '香甜浓郁的秋季特产。', usable: false },
+    '安息香':   { icon: '🪔', type: 'material', rarity: 3, desc: '丝路传来的西域香料。', usable: false },
+    '梅花瓣':   { icon: '❄️', type: 'material', rarity: 2, desc: '冬日收集的寒梅花瓣。', usable: false },
+    '沉香粉':   { icon: '🪵', type: 'material', rarity: 3, desc: '极品香丸的主料。', usable: false },
+    '檀香粉':   { icon: '🪵', type: 'material', rarity: 2, desc: '合香时的辅料。', usable: false },
+    '蜂蜜':     { icon: '🍯', type: 'material', rarity: 1, desc: '天然粘合剂。', usable: false },
+    '龙涎香':   { icon: '🐉', type: 'material', rarity: 5, desc: '深海巨鲸的馈赠，千金难求。', usable: false },
+    '茶筅':     { icon: '🥢', type: 'material', rarity: 2, desc: '宋代点茶的击拂工具。', usable: false },
+    '石灰':     { icon: '⚪', type: 'material', rarity: 1, desc: '造纸脱胶用。', usable: false },
+    '檀木灰':   { icon: '🪵', type: 'material', rarity: 2, desc: '可防虫蛀的灰烬。', usable: false },
+    '稻草纤维': { icon: '🌾', type: 'material', rarity: 1, desc: '宣纸增加韧性的秘诀。', usable: false },
+    '古墨粉':   { icon: '✒️', type: 'material', rarity: 3, desc: '历经岁月的徽墨粉。', usable: false },
+    '花汁':     { icon: '🌸', type: 'material', rarity: 2, desc: '鲜艳的天然颜料。', usable: false },
+    '普通印石': { icon: '🪨', type: 'material', rarity: 1, desc: '适合新手练刀的石头。', usable: false },
+    '砂纸':     { icon: '🧽', type: 'material', rarity: 1, desc: '打磨抛光工具。', usable: false },
+    '古河床印石': { icon: '💎', type: 'material', rarity: 4, desc: '水流冲刷万年的极品印石。', usable: false },
+    '青铜粉':   { icon: '⚱️', type: 'material', rarity: 3, desc: '带着青铜器锈迹的粉末。', usable: false },
+    '篆刻刀':   { icon: '🔪', type: 'material', rarity: 2, desc: '锋利无比的铁刀。', usable: false },
+    '防虫药粉': { icon: '🌿', type: 'material', rarity: 2, desc: '古籍修复的必备品。', usable: false },
+    '陈年宣纸碎片': { icon: '📜', type: 'material', rarity: 3, desc: '能与古籍完美融合的老纸。', usable: false },
+    '普通玉石': { icon: '💎', type: 'material', rarity: 2, desc: '未经雕琢的璞玉。', usable: false },
+    '切割工具': { icon: '🔪', type: 'material', rarity: 2, desc: '解玉砂与锯子。', usable: false },
+    '打磨工具': { icon: '🧽', type: 'material', rarity: 2, desc: '让玉石发光的兽皮。', usable: false },
+    '古玉碎片': { icon: '💎', type: 'material', rarity: 4, desc: '墓葬中流出的神秘古玉。', usable: false },
+    '天然生漆': { icon: '🎨', type: 'material', rarity: 3, desc: '漆树上割下的树汁，极易过敏。', usable: false },
+    '贝壳碎屑': { icon: '🐚', type: 'material', rarity: 2, desc: '螺钿镶嵌的原料。', usable: false },
+    '木盒':     { icon: '📦', type: 'material', rarity: 1, desc: '最普通的木制容器。', usable: false },
+    '铜矿石':   { icon: '🪨', type: 'material', rarity: 2, desc: '青铜的骨。', usable: false },
+    '锡矿石':   { icon: '🪨', type: 'material', rarity: 2, desc: '青铜的血。', usable: false },
+    '古青铜碎片': { icon: '⚱️', type: 'material', rarity: 4, desc: '商周时期的青铜残件。', usable: false },
+    '青铜范碎片': { icon: '⚱️', type: 'material', rarity: 3, desc: '古代铸造模具的残片。', usable: false },
+    '青铜范':   { icon: '⚱️', type: 'material', rarity: 3, desc: '铸造用模具。', usable: false },
+    '金矿石':   { icon: '🪨', type: 'material', rarity: 4, desc: '闪闪发光的原矿。', usable: false },
+    '银矿石':   { icon: '🪨', type: 'material', rarity: 3, desc: '内敛的银白原矿。', usable: false },
+    '古金碎片': { icon: '💰', type: 'material', rarity: 5, desc: '皇陵中带出的金箔。', usable: false },
+    '珍珠':     { icon: '💎', type: 'material', rarity: 3, desc: '圆润的东珠。', usable: false },
+    '鲛绡绳':   { icon: '🌊', type: 'material', rarity: 4, desc: '鲛人织成的细绳。', usable: false },
+    '戏服碎布': { icon: '🎭', type: 'material', rarity: 3, desc: '名角儿戏服上撕下的布料。', usable: false },
+
+    // ── 2. 半成品 (制造中的中间产物) ──
+    '精制陶泥': { icon: '🟤', type: 'material', rarity: 2, desc: '经过过滤揉练的泥料。' },
+    '冰霜陶泥': { icon: '🧊', type: 'material', rarity: 4, desc: '融合了晨露，触手生凉。' },
+    '赤焰陶泥': { icon: '🔥', type: 'material', rarity: 3, desc: '入窑易发红。' },
+    '古韵陶泥': { icon: '🏺', type: 'material', rarity: 4, desc: '自带千年古韵。' },
+    '茶盏素坯': { icon: '🥣', type: 'material', rarity: 2, desc: '尚未施釉的毛坯。' },
+    '雕花茶盏素坯': { icon: '🪵', type: 'material', rarity: 3, desc: '带有木雕印记。' },
+    '如意茶盏素坯': { icon: '☁️', type: 'material', rarity: 4, desc: '窑变极品率极高。' },
+    '青瓷梅瓶素坯': { icon: '🏺', type: 'material', rarity: 3, desc: '线条流畅的梅瓶。' },
+    '宋韵梅瓶素坯': { icon: '🕰️', type: 'material', rarity: 4, desc: '仿佛来自南宋。' },
+    '五彩绣线': { icon: '🧶', type: 'material', rarity: 2, desc: '草木染的绣线。' },
+    '大红朱砂线': { icon: '🩸', type: 'material', rarity: 4, desc: '午时烈阳下的正红。' },
+    '青岚蓝绣线': { icon: '🔵', type: 'material', rarity: 3, desc: '青山绿水之色。' },
+    '栀子白绣线': { icon: '⚪', type: 'material', rarity: 3, desc: '百年不黄。' },
+    '云锦面料': { icon: '🧵', type: 'material', rarity: 3, desc: '寸锦寸金。' },
+    '孔雀云锦': { icon: '🦚', type: 'material', rarity: 5, desc: '闪烁如孔雀开屏。' },
+    '日光云锦': { icon: '☀️', type: 'material', rarity: 4, desc: '自带金光。' },
+    '皮影面料': { icon: '🎭', type: 'material', rarity: 2, desc: '刮制好的驴皮。' },
+    '夜光皮影面料': { icon: '✨', type: 'material', rarity: 4, desc: '暗夜中幽幽发光。' },
+    '机扩木骨': { icon: '🧩', type: 'material', rarity: 2, desc: '不用一根钉子的核心。' },
+    '胡杨木骨': { icon: '🌵', type: 'material', rarity: 3, desc: '坚不可摧。' },
+    '防腐木骨': { icon: '🛡️', type: 'material', rarity: 4, desc: '桐油浸透的木骨。' },
+    '清心茶膏': { icon: '🍵', type: 'material', rarity: 2, desc: '点茶专用。' },
+    '无根水茶膏': { icon: '💧', type: 'material', rarity: 4, desc: '灵气四溢。' },
+    '竹韵茶膏': { icon: '🎋', type: 'material', rarity: 3, desc: '带竹叶清香。' },
+    '竹浆纸浆': { icon: '📜', type: 'material', rarity: 2, desc: '洁白的纸浆。' },
+    '檀香纸浆': { icon: '🪵', type: 'material', rarity: 3, desc: '防虫自带檀香。' },
+    '晨露纸浆': { icon: '💧', type: 'material', rarity: 3, desc: '韧性极佳。' },
+    '基础印石': { icon: '🪨', type: 'material', rarity: 2, desc: '打磨平整的石头。' },
+    '灵韵印石': { icon: '💎', type: 'material', rarity: 4, desc: '有水波纹的古石。' },
+    '青铜印石': { icon: '⚱️', type: 'material', rarity: 3, desc: '金石交击之声。' },
+    '玉石原石': { icon: '💎', type: 'material', rarity: 2, desc: '刚切开的玉。' },
+    '温润玉石': { icon: '💧', type: 'material', rarity: 3, desc: '水洗过的美玉。' },
+    '古韵玉石': { icon: '🕰️', type: 'material', rarity: 4, desc: '带沁色的老玉。' },
+    '基础漆料': { icon: '🎨', type: 'material', rarity: 2, desc: '调和好的大漆。' },
+    '贝壳漆料': { icon: '🐚', type: 'material', rarity: 3, desc: '闪烁星点。' },
+    '彩漆料':   { icon: '🌈', type: 'material', rarity: 3, desc: '颜色艳丽。' },
+    '青铜锭':   { icon: '⚱️', type: 'material', rarity: 2, desc: '合金锭。' },
+    '古青铜锭': { icon: '🕰️', type: 'material', rarity: 4, desc: '带远古配方的合金。' },
+    '赤焰青铜锭': { icon: '🔥', type: 'material', rarity: 3, desc: '极度坚硬。' },
+    '金锭':     { icon: '💰', type: 'material', rarity: 3, desc: '闪耀的黄金。' },
+    '古金锭':   { icon: '🕰️', type: 'material', rarity: 5, desc: '纯度极高的老金。' },
+    '日光金锭': { icon: '☀️', type: 'material', rarity: 4, desc: '午时淬火的金块。' },
+
+    // ── 3. 终极天工造物成品 (可作为展示与图鉴) ──
+    '素面青瓷': { icon: '🍵', type: 'crafted', rarity: 3, desc: '大道至简的龙泉青瓷。' },
+    '曜变天目盏': { icon: '🌌', type: 'rare', rarity: 5, desc: '盏中蕴含宇宙星河，世间孤品。' },
+    '异香波斯陶杯': { icon: '🏺', type: 'rare', rarity: 4, desc: '散发着永恒的西域异香。' },
+    '珍珠青瓷盏': { icon: '💎', type: 'rare', rarity: 4, desc: '釉面如珍珠般散发柔光。' },
+    '秘色青瓷盏': { icon: '✨', type: 'rare', rarity: 5, desc: '失传千年的秘色重现人间。' },
+    '刻花青瓷梅瓶': { icon: '🏺', type: 'crafted', rarity: 3, desc: '刻有缠枝莲纹的优雅梅瓶。' },
+    '描金青瓷梅瓶': { icon: '✨', type: 'rare', rarity: 5, desc: '青翠中闪烁着赤金光芒，皇家御用。' },
+    '海韵青瓷梅瓶': { icon: '🌊', type: 'rare', rarity: 5, desc: '瓶身自带海浪波纹与水汽。' },
+    '青铜纹瓷尊': { icon: '⚱️', type: 'crafted', rarity: 4, desc: '陶瓷与青铜的跨界结合。' },
+    '商周纹瓷尊': { icon: '🪨', type: 'rare', rarity: 5, desc: '复刻了商周重器神韵的瓷器。' },
+    
+    '夜光幽梦扇': { icon: '✨', type: 'rare', rarity: 4, desc: '夜晚扇面会浮现发光图腾。' },
+    '梨园雅韵扇': { icon: '🎭', type: 'rare', rarity: 4, desc: '挥舞间隐有昆曲唱腔。' },
+    '古绣流云扇': { icon: '☁️', type: 'rare', rarity: 5, desc: '明代顶级绣法的复原。' },
+    '云锦霞帔':   { icon: '👘', type: 'crafted', rarity: 4, desc: '华贵异常的明代服饰。' },
+    '鲛绡云锦霞帔': { icon: '🌊', type: 'rare', rarity: 5, desc: '水火不侵的仙女羽衣。' },
+    '梨园云锦霞帔': { icon: '🎭', type: 'rare', rarity: 5, desc: '万艺城名角儿专属定做。' },
+    '关羽皮影':   { icon: '⚔️', type: 'crafted', rarity: 3, desc: '威风凛凛的皮影人偶。' },
+    '青铜皮影':   { icon: '🪨', type: 'rare', rarity: 4, desc: '带有青铜质感的异类皮影。' },
+    '古法皮影':   { icon: '🕰️', type: 'rare', rarity: 5, desc: '唐代皮影工艺的活化石。' },
+    
+    '木鸢':       { icon: '🦅', type: 'crafted', rarity: 3, desc: '鲁班工艺复刻的飞行器。' },
+    '发条青鸟':   { icon: '🕊️', type: 'rare', rarity: 5, desc: '中西结合，会发出八音盒音乐。' },
+    '琥珀木灵兽': { icon: '🦂', type: 'rare', rarity: 5, desc: '被封印着沙漠巨兽灵魂的木作。' },
+    '灵竹木鸢':   { icon: '🎋', type: 'rare', rarity: 4, desc: '飞行时带出竹笛声。' },
+    '望远木鸢':   { icon: '🔍', type: 'rare', rarity: 4, desc: '古代的无人侦察机。' },
+    '基础鲁班锁': { icon: '🔒', type: 'crafted', rarity: 2, desc: '考验智力的六木结构。' },
+    '铁骨鲁班锁': { icon: '⚒️', type: 'rare', rarity: 3, desc: '加装精铁，极难拆卸。' },
+    '夜光鲁班锁': { icon: '✨', type: 'rare', rarity: 4, desc: '能在黑夜中发光。' },
+    '皮影木架':   { icon: '🎭', type: 'crafted', rarity: 3, desc: '精美的皮影演出架。' },
+    '机械皮影架': { icon: '⚙️', type: 'rare', rarity: 4, desc: '能自动调节高度的黑科技。' },
+    '古式皮影架': { icon: '🕰️', type: 'rare', rarity: 4, desc: '唐代老物件复刻。' },
+    '竹编花篮':   { icon: '🎋', type: 'crafted', rarity: 2, desc: '精美的竹编器皿。' },
+    '彩编花篮':   { icon: '🌈', type: 'rare', rarity: 3, desc: '草木染色的绚丽竹篮。' },
+    '鲛绡竹篮':   { icon: '🌊', type: 'rare', rarity: 4, desc: '内衬深海鲛绡的高级货。' },
+
+    '古法醒神香': { icon: '🪔', type: 'crafted', rarity: 3, desc: '安神定志的线香。' },
+    '霸王别姬惊梦香': { icon: '🎭', type: 'rare', rarity: 5, desc: '点燃后闻者落泪。' },
+    '安神静心香': { icon: '🌙', type: 'rare', rarity: 4, desc: '助眠绝佳。' },
+    '寒梅暗香':   { icon: '❄️', type: 'rare', rarity: 4, desc: '带有冬日凛冽香气。' },
+    '基础香丸':   { icon: '💊', type: 'crafted', rarity: 3, desc: '随身携带的香球。' },
+    '龙涎香丸':   { icon: '🐉', type: 'rare', rarity: 5, desc: '皇室御用级别的极品。' },
+    '梨园香丸':   { icon: '🎭', type: 'rare', rarity: 4, desc: '带有胭脂脂粉的温柔香。' },
+    '宋代点茶':   { icon: '🍵', type: 'crafted', rarity: 3, desc: '复刻大宋风雅的茶汤。' },
+    '桂香点茶':   { icon: '🌼', type: 'rare', rarity: 4, desc: '甜蜜的秋日茶饮。' },
+    '珍珠点茶':   { icon: '💎', type: 'rare', rarity: 5, desc: '美容养颜的宫廷茶。' },
+
+    '古法宣纸':   { icon: '📜', type: 'crafted', rarity: 3, desc: '纸中之王。' },
+    '古墨宣纸':   { icon: '✒️', type: 'rare', rarity: 4, desc: '自带墨香的黑纸。' },
+    '彩宣':       { icon: '🎨', type: 'rare', rarity: 4, desc: '花汁染色的漂亮信纸。' },
+    '普通印章':   { icon: '✒️', type: 'crafted', rarity: 2, desc: '文人雅士的落款。' },
+    '古墨印章':   { icon: '🕰️', type: 'rare', rarity: 3, desc: '盖印时墨色古朴。' },
+    '古法印章':   { icon: '📜', type: 'rare', rarity: 4, desc: '汉代印风重现。' },
+    '修复宣纸':   { icon: '📜', type: 'crafted', rarity: 3, desc: '古籍修缮的利器。' },
+    '古纸修复纸': { icon: '🕰️', type: 'rare', rarity: 5, desc: '与千年古籍完美融为一体。' },
+
+    '玉坠':       { icon: '💍', type: 'crafted', rarity: 3, desc: '温润的随身玉饰。' },
+    '鎏金玉坠':   { icon: '✨', type: 'rare', rarity: 5, desc: '金玉良缘的绝佳代表。' },
+    '海韵玉坠':   { icon: '🌊', type: 'rare', rarity: 5, desc: '握在手中如临深海。' },
+    '素面漆盒':   { icon: '📦', type: 'crafted', rarity: 3, desc: '深邃沉稳的黑色漆器。' },
+    '描金漆盒':   { icon: '✨', type: 'rare', rarity: 5, desc: '华丽非凡的宫廷漆器。' },
+    '墨色漆盒':   { icon: '✒️', type: 'rare', rarity: 4, desc: '极具文人风骨的文房具。' },
+
+    '青铜小钟':   { icon: '🔔', type: 'crafted', rarity: 3, desc: '能敲出清脆古音。' },
+    '鎏金青铜钟': { icon: '✨', type: 'rare', rarity: 5, desc: '皇家祭祀用重器。' },
+    '商代青铜钟': { icon: '🪨', type: 'rare', rarity: 5, desc: '仿佛刚从殷墟中挖出。' },
+    '金手镯':     { icon: '💍', type: 'crafted', rarity: 3, desc: '沉甸甸的纯金饰品。' },
+    '珍珠金手镯': { icon: '💎', type: 'rare', rarity: 4, desc: '镶嵌着东珠的贵妇首饰。' },
+    '鲛绡金手镯': { icon: '🌊', type: 'rare', rarity: 5, desc: '刚柔并济的跨界神作。' },
+    // ... 前面是材料和造物成品，在最下面加上：
+
+    // ── 4. 专属信物 (归入新的 💌 信物 标签) ──
+    '王雪萍的感谢信': { 
+        icon: '✉️', type: 'token', rarity: 4, 
+        desc: '锦绣坊王雪萍匠师亲笔写下的信件，字迹娟秀。', 
+        usable: true, actionName: '拆开信封', useFunc: 'readLetter',
+        sender: '— 锦绣坊 王雪萍',
+        letterContent: '游历者亲启：<br><br>那日得你相助，我用那古绣针试着绣了一幅牡丹，竟真的找回了师傅当年教我的神韵。<br><br>随信附上我亲手绣制的香囊，愿它能为你驱散九州的迷雾，护你一路周全。'
+    },
+    '张景春的青瓷令': {
+        icon: '🔖', type: 'token', rarity: 5,
+        desc: '一枚烧制着你名号的青瓷令牌，是张景春给知音的信物。',
+        usable: true, actionName: '端详信物', useFunc: 'readLetter',
+        sender: '— 龙泉窑 张景春',
+        letterContent: '我这窑火烧了半辈子，见惯了来来往往的看客，却难得遇见懂它温度的人。<br><br>这枚青瓷令你收好，以后来百作镇，无论多晚，我的窑口都为你留一盏灯。'
+    },
+    '无名游侠的留言': {
+        icon: '📝', type: 'token', rarity: 3,
+        desc: '在祈福神树下捡到的一张便签。',
+        usable: true, actionName: '阅读留言', useFunc: 'readLetter',
+        sender: '— 九州过客 星渊',
+        letterContent: '朋友，如果你看到这张纸条，说明你也卡在收集【沉香木料】的任务上了吧？<br><br>别去百作镇买，太贵了！去【森之低语】的西南角多转悠几圈，那里有隐藏的掉落点。祝你好运！'
+    }
+});
+
+// =========================================================================
+// 🌟 场景生态补丁：为 14 个大世界地图注入丰富的基础材料掉落
+// =========================================================================
+if (typeof sceneConfig !== 'undefined') {
+    const addDrops = (scene, items) => {
+        if (sceneConfig[scene] && sceneConfig[scene].exploration && sceneConfig[scene].exploration.ecology) {
+            items.forEach(i => sceneConfig[scene].exploration.ecology.dropPool.push(i));
+        }
+    };
+
+    addDrops('baizuozhen', [
+        { icon:'🏺', itemName:'高岭陶土' }, { icon:'🪵', itemName:'沉香木料' },
+        { icon:'🔪', itemName:'竹制刻刀' }, { icon:'⚪', itemName:'石灰' },
+        { icon:'🎨', itemName:'天然生漆' }, { icon:'🧽', itemName:'砂纸' },
+        { icon:'🔪', itemName:'切割工具' }, { icon:'🧽', itemName:'打磨工具' },
+        { icon:'📦', itemName:'木盒' }, { icon:'🪨', itemName:'铜矿石' },
+        { icon:'🪨', itemName:'锡矿石' }, { icon:'🪨', itemName:'普通印石' },
+        { icon:'🔪', itemName:'篆刻刀' }, { icon:'🌿', itemName:'防虫药粉' }
+    ]);
+
+    addDrops('qinglanjie', [
+        { icon:'💧', itemName:'清晨露水' }, { icon:'🔵', itemName:'蓝草汁液' },
+        { icon:'🎋', itemName:'灵竹' }, { icon:'🎋', itemName:'灵竹篾' },
+        { icon:'💧', itemName:'无根水' }, { icon:'💧', itemName:'灵竹露' },
+        { icon:'🥢', itemName:'茶筅' }, { icon:'🌸', itemName:'梅花瓣' }
+    ]);
+
+    addDrops('wanyicheng', [
+        { icon:'🧵', itemName:'戏服绣线' }, { icon:'🐴', itemName:'驴皮' },
+        { icon:'🌿', itemName:'草木染料' }
+    ]);
+
+    addDrops('jinxiufang', [
+        { icon:'🧵', itemName:'苏绣丝线' }, { icon:'⚪', itemName:'栀子花粉' },
+        { icon:'🪡', itemName:'古绣针' }, { icon:'💰', itemName:'金线' },
+        { icon:'👘', itemName:'云锦布料' }
+    ]);
+
+    addDrops('cangminghai', [
+        { icon:'💧', itemName:'鲛人泪' }, { icon:'💎', itemName:'珍珠粉' },
+        { icon:'🌊', itemName:'鲛绡断匹' }, { icon:'🐉', itemName:'龙涎香' },
+        { icon:'🐚', itemName:'贝壳碎屑' }, { icon:'💎', itemName:'珍珠' },
+        { icon:'🌊', itemName:'鲛绡绳' }
+    ]);
+
+    addDrops('senzhidiyu', [
+        { icon:'🌿', itemName:'紫苏叶' }, { icon:'✨', itemName:'荧光孢子' },
+        { icon:'🫙', itemName:'桐油' }, { icon:'🌼', itemName:'桂花蜜' },
+        { icon:'🍯', itemName:'蜂蜜' }, { icon:'🌸', itemName:'花汁' }
+    ]);
+
+    addDrops('tongxiyu', [
+        { icon:'🌶️', itemName:'西域香料' }, { icon:'🦚', itemName:'孔雀羽毛' },
+        { icon:'🔍', itemName:'玻璃镜片' }, { icon:'🪨', itemName:'金矿石' },
+        { icon:'🪨', itemName:'银矿石' }
+    ]);
+
+    addDrops('shahaiyicheng', [
+        { icon:'🌵', itemName:'胡杨木' }, { icon:'🦂', itemName:'流沙琥珀' },
+        { icon:'🪔', itemName:'安息香' }, { icon:'⚱️', itemName:'古青铜碎片' }
+    ]);
+
+    addDrops('ouluoba', [ { icon:'⚙️', itemName:'青铜齿轮' } ]);
+
+    addDrops('midianzhijing', [
+        { icon:'✒️', itemName:'古墨粉' }, { icon:'📜', itemName:'陈年宣纸碎片' },
+        { icon:'🪵', itemName:'檀木灰' }, { icon:'🌾', itemName:'稻草纤维' },
+        { icon:'💎', itemName:'古玉碎片' }, { icon:'💰', itemName:'古金碎片' },
+        { icon:'🏺', itemName:'古陶碎片' }, { icon:'⚱️', itemName:'青铜范碎片' }
+    ]);
+}
+

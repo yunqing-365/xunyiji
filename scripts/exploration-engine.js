@@ -703,8 +703,8 @@ function _spawnCritter(cDef) {
     el.className = 'eco-critter'; 
     el.innerHTML = cDef.icon;
     
-    // ⚠️ 核心修复1：去掉了 transition: top/left，防止和 JS 的 requestAnimationFrame 逐帧渲染打架
-    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; pointer-events:auto; cursor:pointer; transform:translate(-50%,-50%); transition: opacity 0.3s;`;
+    // ⚠️ 核心修复：只留 opacity 的过渡，绝对不能给 top/left/transform 加 transition！
+    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; pointer-events:auto; cursor:pointer; transform:translate(-50%,-50%); transition: opacity 0.3s ease;`;
     
     el.addEventListener('click', (e) => { 
         e.stopPropagation(); 
@@ -725,11 +725,19 @@ function _tickCritters() {
             c.ty = Math.max(50, Math.min(WORLD_H-50, c.y + (Math.random()-0.5)*300));
         }
         if (c.type === 'flee' && Math.hypot(_exp.player.x - c.x, _exp.player.y - c.y) < 150) {
-            c.tx = c.x + (c.x - _exp.player.x)*2; c.ty = c.y + (c.y - _exp.player.y)*2;
+            c.tx = c.x + (c.x - _exp.player.x)*2; 
+            c.ty = c.y + (c.y - _exp.player.y)*2;
+            c.tx = Math.max(50, Math.min(WORLD_W-50, c.tx));
+            c.ty = Math.max(50, Math.min(WORLD_H-50, c.ty));
         }
-        c.x += (c.tx - c.x) * 0.02 * c.speed; c.y += (c.ty - c.y) * 0.02 * c.speed;
-        c.el.style.left = c.x + 'px'; c.el.style.top = c.y + 'px';
-        c.el.style.transform = c.tx < c.x ? 'scaleX(-1)' : 'scaleX(1)';
+        
+        c.x += (c.tx - c.x) * 0.02 * c.speed; 
+        c.y += (c.ty - c.y) * 0.02 * c.speed;
+        c.el.style.left = c.x + 'px'; 
+        c.el.style.top = c.y + 'px';
+        
+        // ⚠️ 核心修复：必须把 translate 和 scaleX 写在一起！
+        c.el.style.transform = `translate(-50%, -50%) scaleX(${c.tx < c.x ? -1 : 1})`;
     });
 }
 
