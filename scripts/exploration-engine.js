@@ -699,9 +699,21 @@ function _collectDynamicDrop(el, itemName, dropId) {
 
 function _spawnCritter(cDef) {
     const rx = Math.random() * WORLD_W, ry = Math.random() * WORLD_H;
-    const el = document.createElement('div'); el.className = 'eco-critter'; el.innerHTML = cDef.icon;
-    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; pointer-events:auto; cursor:pointer; transition: top 3s linear, left 3s linear;`;
-    el.addEventListener('click', (e) => { e.stopPropagation(); el.style.opacity = '0'; setTimeout(()=>el.remove(), 500); if(typeof earnStones==='function') earnStones(5); _exp.critters = _exp.critters.filter(c=>c.el!==el); });
+    const el = document.createElement('div'); 
+    el.className = 'eco-critter'; 
+    el.innerHTML = cDef.icon;
+    
+    // ⚠️ 核心修复1：去掉了 transition: top/left，防止和 JS 的 requestAnimationFrame 逐帧渲染打架
+    el.style.cssText = `position:absolute; left:${rx}px; top:${ry}px; font-size:20px; z-index:25; pointer-events:auto; cursor:pointer; transform:translate(-50%,-50%); transition: opacity 0.3s;`;
+    
+    el.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        el.style.opacity = '0'; 
+        setTimeout(()=>el.remove(), 300); 
+        if(typeof earnStones==='function') earnStones(5); 
+        _exp.critters = _exp.critters.filter(c=>c.el!==el); 
+    });
+    
     document.getElementById('exp-nodes')?.appendChild(el);
     _exp.critters.push({ el, x: rx, y: ry, tx: rx, ty: ry, type: cDef.behavior, speed: Math.random()*2+1 });
 }
@@ -725,12 +737,35 @@ function _spawnEnvironmentParticles(config) {
     const layer = document.getElementById('exp-click-layer'); 
     const pType = config.exploration.ecology?.particleEffect;
     if (!layer || !pType) return;
+    
+    // ⚠️ 核心修复2：动态注入粒子下落与漂浮的动画关键帧 (@keyframes)
+    if (!document.getElementById('exp-particle-style')) {
+        const style = document.createElement('style');
+        style.id = 'exp-particle-style';
+        style.innerHTML = `
+            @keyframes envFall { 0% { transform: translateY(-50px) rotate(0deg); opacity:0; } 20% { opacity:0.8; } 80% { opacity:0.8; } 100% { transform: translateY(400px) rotate(360deg); opacity:0; } }
+            @keyframes envFloat { 0% { transform: translate(0,0) scale(1); opacity:0; } 20% { opacity:1; } 80% { opacity:1; } 100% { transform: translate(150px,-100px) scale(1.5); opacity:0; } }
+        `;
+        document.head.appendChild(style);
+    }
+
     for(let i=0; i<30; i++) {
-        const p = document.createElement('div'); p.className = `exp-particle particle-${pType}`;
-        p.style.cssText = `position:absolute; left:${Math.random()*100}%; top:${Math.random()*100}%; animation-duration:${Math.random()*10+5}s; animation-delay:-${Math.random()*10}s; pointer-events:none; opacity:0.6; z-index:500;`;
+        const p = document.createElement('div'); 
+        p.className = `exp-particle particle-${pType}`;
+        
+        // 判断粒子是落叶(下落)还是萤火虫(上浮)
+        let animName = pType === 'fireflies' ? 'envFloat' : 'envFall';
+        
+        // ⚠️ 核心修复3：绑定完整的 animation 属性
+        p.style.cssText = `position:absolute; left:${Math.random()*100}%; top:${Math.random()*100}%; animation: ${animName} ${Math.random()*10+5}s linear ${-Math.random()*10}s infinite; pointer-events:none; opacity:0.6; z-index:500;`;
+        
         if (pType === 'bamboo-leaves') p.innerText = '🍃';
         else if (pType === 'petals') p.innerText = '🌸';
-        else if (pType === 'fireflies') p.style.cssText += 'width:4px; height:4px; background:var(--jade); border-radius:50%; box-shadow:0 0 10px var(--jade);';
+        else if (pType === 'fireflies') {
+            p.style.width = '6px'; p.style.height = '6px'; 
+            p.style.background = 'var(--jade)'; p.style.borderRadius = '50%'; 
+            p.style.boxShadow = '0 0 12px 3px var(--jade)';
+        }
         layer.appendChild(p);
     }
 }

@@ -132,6 +132,30 @@ function updateStats() {
 }
 
 /**
+ * 更新页面顶部灵石数字显示
+ */
+function updateStats() {
+    const el = document.getElementById('stone-count');
+    if (el) el.innerText = gameState.stones;
+}
+
+// 👇👇👇 复制以下这段新增的 addItem 函数 👇👇👇
+/**
+ * 核心：向背包添加物品并自动存档、刷新UI
+ */
+window.addItem = function(itemName, amount = 1) {
+    if (!gameState.inventory) gameState.inventory = {};
+    gameState.inventory[itemName] = (gameState.inventory[itemName] || 0) + amount;
+    
+    // 自动存档
+    if (typeof SaveManager !== 'undefined') SaveManager.save();
+    
+    // 如果背包界面开着，立刻刷新
+    if (typeof updateInventory === 'function') updateInventory();
+};
+// 👆👆👆 复制到这里 👆👆👆
+
+/**
  * 根据 gameState.inventory 重新渲染灵犀袋格子
  * @param {string} [filterType='all'] - 筛选类型
  */

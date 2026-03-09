@@ -2254,10 +2254,13 @@ const CraftRenderer = (function() {
   <!-- 屏幕1：设备大厅 -->
   <div id="screen-hub" class="craft-screen">
     <button class="craft-back-btn" onclick="CraftRenderer.close()">← 离开</button>
+    <button class="craft-back-btn" style="left: auto; right: 22px; color: var(--gold); border-color: rgba(212,175,55,0.4); background: rgba(212,175,55,0.1);" onclick="CraftRenderer.close(); openCompendium();">📖 万物鉴</button>
+    
     <div class="hub-header">
       <div class="hub-title">⚒ 天工造物</div>
       <div class="hub-subtitle">— 九州工坊，各显神通 —</div>
     </div>
+
     <div class="hub-env-bar" id="hub-env-bar">⚡ 天地法则感应中...</div>
     <div class="hub-grid" id="hub-grid"></div>
   </div>
@@ -2519,7 +2522,8 @@ const CraftRenderer = (function() {
         zone.innerHTML = `
           <div class="interact-message">${cfg.message}</div>
           <button class="interact-confirm-btn" id="btn-confirm">✅ ${cfg.label}</button>`;
-        document.getElementById('btn-confirm').onclick = () => _completeStep(1.0);
+        // 👇 这里加了 (e) 和 _spawnClickSpark(e)
+        document.getElementById('btn-confirm').onclick = (e) => { _spawnClickSpark(e); _completeStep(1.0); };
         break;
       }
 
@@ -2765,6 +2769,17 @@ const CraftRenderer = (function() {
 
     _showScreen('screen-result');
   }
+
+  // 👇 把这个函数粘贴在这里
+  /* 增加点击时的星火特效 */
+  function _spawnClickSpark(e) {
+    const pt = document.createElement('div');
+    pt.style.cssText = `position:fixed; left:${e.clientX}px; top:${e.clientY}px; pointer-events:none; z-index:9999; font-size:24px; transform:translate(-50%,-50%); text-shadow:0 0 15px var(--gold); animation: fxUp 0.5s ease-out forwards;`;
+    pt.innerText = '✨';
+    document.body.appendChild(pt);
+    setTimeout(() => pt.remove(), 500);
+  }
+
 
   /* ══ 公开 API ══ */
   return {
