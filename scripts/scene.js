@@ -83,7 +83,13 @@ function enterScene(sceneKey) {
     const sceneBg = document.getElementById('scene-bg');
     if (sceneBg) {
         sceneBg.style.backgroundColor = config.bgColor || '#1a1a1a';
-        sceneBg.style.backgroundImage = config.bgImage ? `url('${config.bgImage}')` : 'none';
+        // 底部深色渐变蒙版：从底部纯黑→中部半透明→顶部透明，叠加在背景图之上
+        const gradient = 'linear-gradient(to top, rgba(8,5,3,.95) 0%, rgba(8,5,3,.65) 35%, rgba(8,5,3,.2) 65%, transparent 100%)';
+        sceneBg.style.backgroundImage = config.bgImage
+            ? `${gradient}, url('${config.bgImage}')`
+            : gradient;
+        sceneBg.style.backgroundSize   = 'cover, cover';
+        sceneBg.style.backgroundPosition = 'center, center';
     }
 
     // 传习录探索记录
